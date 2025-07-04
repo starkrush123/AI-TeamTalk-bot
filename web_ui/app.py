@@ -1,12 +1,13 @@
 from flask import Flask, jsonify, request, render_template, session, redirect, url_for, flash
 import threading
-import logging
+
 import os
 import json
 from functools import wraps
 
-from bot_controller import ApplicationController, setup_logging
+from bot_controller import ApplicationController
 from config_manager import load_config, save_config, DEFAULT_CONFIG
+from logger_config import setup_logging, bot_logger # Import setup_logging and bot_logger from logger_config
 from .database import db, User # Import db and User from database.py
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -14,6 +15,7 @@ app.secret_key = 'supersecretkey_for_session_management' # Ganti dengan kunci ya
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db' # SQLite database file
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Disable tracking modifications
 db.init_app(app) # Initialize db with the Flask app
+app.logger.propagate = False # Prevent Flask logs from propagating to root logger
 
 # Global variable to hold the bot controller instance
 bot_controller = None
@@ -27,9 +29,25 @@ with app.app_context():
         admin_user.set_password('password') # Default password
         db.session.add(admin_user)
         db.session.commit()
-        logging.info("Default admin user created: admin/password")
+        bot_logger.info("Default admin user created: admin/password")
 
     setup_logging()
+    # Clear bot.log on fresh Flask app start, but not on bot restart
+    log_file_path = os.path.join(os.getcwd(), 'bot.log')
+    if os.path.exists(log_file_path):
+        try:
+            # Check if the bot is intentionally stopping (e.g., for a restart)
+            # This is a heuristic, a more robust solution might involve a flag
+            # passed from bot_controller to app.py during restart.
+            # For now, we assume a fresh app start means no bot_controller.bot_instance
+            # is running or it's not marked for intentional stop.
+            if bot_controller is None or bot_controller.bot_instance is None or not bot_controller.bot_instance._intentional_stop:
+                with open(log_file_path, 'w') as f:
+                    f.truncate(0) # Clear the log file
+                bot_logger.info("bot.log cleared on fresh application start.")
+        except Exception as e:
+            bot_logger.error(f"Error clearing bot.log: {e}")
+
     bot_controller = ApplicationController(nogui_mode=True)
     bot_controller.config = load_config() # Load config at startup
 
@@ -85,7 +103,29 @@ def logout():
 @app.route('/')
 @login_required
 def index():
+    global bot_controller
+    if not bot_controller.config:
+        flash('Configuration file not found or invalid. Please set up your configuration.', 'warning')
+        return redirect(url_for('setup_config'))
     return render_template('index.html')
+
+@app.route('/setup_config', methods=['GET', 'POST'])
+@login_required
+def setup_config():
+    global bot_controller
+    if bot_controller.config:
+        flash('Configuration already exists. Redirected to main page.', 'info')
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        # This part will be handled by the existing /config POST route
+        # For now, just redirect to /config and let it handle the save
+        # In a real scenario, you might want to process the form data here
+        # and then call save_config directly or redirect with data.
+        # For simplicity, we'll assume the /config route can handle the POST from this form.
+        # We'll need to adjust the /config route to accept form data if it's currently expecting JSON.
+        pass # This will be filled in later
+    return render_template('setup_config.html', default_config=DEFAULT_CONFIG)
 
 @app.route('/status', methods=['GET'])
 @login_required
@@ -132,7 +172,7 @@ def start_bot():
         bot_controller.start_bot_session()
         return jsonify({"status": "success", "message": "Bot starting..."})
     except Exception as e:
-        logging.error(f"Error starting bot: {e}", exc_info=True)
+        bot_logger.error(f"Error starting bot: {e}", exc_info=True)
         return jsonify({"status": "error", "message": f"Error starting bot: {e}"}), 500
 
 @app.route('/stop', methods=['POST'])
@@ -140,15 +180,15 @@ def start_bot():
 def stop_bot():
     global bot_controller
     if bot_controller and bot_controller.bot_thread and bot_controller.bot_thread.is_alive():
-        logging.info("Web UI: Stop request received.")
+        bot_logger.info("Web UI: Stop request received.")
         bot_controller.request_shutdown()
         # Memberi waktu bot untuk shutdown gracefully
         bot_controller.bot_thread.join(5) 
         if not bot_controller.bot_thread.is_alive():
-            logging.info("Web UI: Bot thread successfully stopped.")
+            bot_logger.info("Web UI: Bot thread successfully stopped.")
             return jsonify({"status": "success", "message": "Bot stopping..."})
         else:
-            logging.warning("Web UI: Bot thread did not stop gracefully within 5 seconds.")
+            bot_logger.warning("Web UI: Bot thread did not stop gracefully within 5 seconds.")
             return jsonify({"status": "warning", "message": "Bot is shutting down, but may take longer."})
     return jsonify({"status": "info", "message": "Bot is not running."})
 
@@ -160,18 +200,16 @@ def restart_bot():
         return jsonify({"status": "error", "message": "Bot controller not initialized."}), 500
 
     if bot_controller.bot_thread and bot_controller.bot_thread.is_alive():
-        logging.info("Web UI: Restart request received. Stopping current instance...")
+        if bot_controller.restart_requested.is_set():
+             return jsonify({"status": "info", "message": "Bot restart is already in progress."})
+        
+        bot_logger.info("Web UI: Restart request received.")
         bot_controller.request_restart()
-        # Memberi waktu bot untuk restart
-        bot_controller.bot_thread.join(10) # Beri waktu lebih untuk stop dan start lagi
-        if bot_controller.bot_thread.is_alive():
-            logging.info("Web UI: Bot restarted successfully.")
-            return jsonify({"status": "success", "message": "Bot restarting..."})
-        else:
-            logging.warning("Web UI: Bot did not restart gracefully.")
-            return jsonify({"status": "warning", "message": "Bot restart initiated, but status is unclear."})
+        return jsonify({"status": "success", "message": "Bot restart initiated."})
     else:
-        return jsonify({"status": "info", "message": "Bot is not running, starting instead of restarting."})
+        bot_logger.info("Web UI: Bot is not running, starting instead.")
+        bot_controller.start_bot_session()
+        return jsonify({"status": "success", "message": "Bot is not running, starting now..."})
 
 
 @app.route('/toggle_feature/<feature_name>', methods=['POST'])
@@ -226,22 +264,26 @@ def manage_config():
             setup_logging()
             bot_controller = ApplicationController(nogui_mode=True)
         
-        new_config = request.json
-        if not new_config:
-            return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400
-        
+        new_config_data = {}
+        for key, value in request.form.items():
+            section, option = key.split('_', 1)
+            if section not in new_config_data:
+                new_config_data[section] = {}
+            new_config_data[section][option] = value
+
         # Validate and merge new config with existing or default config
         current_config = bot_controller.config if bot_controller.config else load_config() or DEFAULT_CONFIG
         
         # Simple merge for now, more robust validation can be added
-        for section, settings in new_config.items():
+        for section, settings in new_config_data.items():
             if section in current_config:
                 for key, value in settings.items():
-                    # Handle boolean strings from JS checkboxes
-                    if value == 'True':
-                        current_config[section][key] = True
-                    elif value == 'False':
-                        current_config[section][key] = False
+                    # Handle boolean strings from form checkboxes
+                    if value == 'on': # Checkbox value when checked
+                        current_config[section][key] = 'True'
+                    elif key in DEFAULT_CONFIG.get(section, {}) and DEFAULT_CONFIG[section][key].lower() in ['true', 'false']:
+                        # If it's a boolean field and not 'on', it means it was unchecked
+                        current_config[section][key] = 'False'
                     else:
                         current_config[section][key] = value
             else:
@@ -250,11 +292,20 @@ def manage_config():
         save_config(current_config)
         bot_controller.config = current_config # Update controller's config
         
-        # If bot is running, a restart might be needed for config changes to take effect
+        # If bot is running, restart it for config changes to take effect
         if bot_controller.bot_thread and bot_controller.bot_thread.is_alive():
-            return jsonify({"status": "success", "message": "Configuration updated. Restart bot for changes to take full effect.", "config": current_config})
+            bot_logger.info("Bot is running, initiating restart to apply new configuration.")
+            bot_controller.request_restart()
+            # Give some time for the bot to restart
+            # bot_controller.bot_thread.join(10) 
+            if bot_controller.bot_thread.is_alive():
+                flash('Configuration updated and bot restarted successfully.', 'success')
+            else:
+                flash('Configuration updated. Bot restart initiated, but status is unclear.', 'warning')
         else:
-            return jsonify({"status": "success", "message": "Configuration updated.", "config": current_config})
+            flash('Configuration updated.', 'success')
+        
+        return redirect(url_for('index'))
 
 @app.route('/logs', methods=['GET'])
 @login_required
@@ -269,7 +320,7 @@ def get_logs():
                 logs = "".join(lines[-limit:])
             return logs, 200, {'Content-Type': 'text/plain'}
         except Exception as e:
-            logging.error(f"Error reading log file: {e}", exc_info=True)
+            bot_logger.error(f"Error reading log file: {e}", exc_info=True)
             return "Error reading logs.", 500
     return "No logs found.", 404
 

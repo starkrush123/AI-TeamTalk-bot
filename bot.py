@@ -1,5 +1,6 @@
 
-import sys, time, logging, random, re, wx
+import sys, time, random, re, wx
+import logging # Re-add logging import for constants
 from TeamTalk5 import (
     TeamTalk, TeamTalkError, TextMsgType, UserRight, TT_STRLEN,
     ttstr, buildTextMessage, ClientError, ClientFlags
@@ -9,10 +10,13 @@ from handlers import command_handler
 from services.gemini_service import GeminiService
 from services.weather_service import WeatherService
 from context_history_manager import ContextHistoryManager
+from logger_config import bot_logger # Import the named logger
+
 
 class MyTeamTalkBot(TeamTalk):
     def __init__(self, config_dict, controller=None):
         super().__init__()
+        self.logger = bot_logger # Use the named logger
         self.config = config_dict
         self.controller = controller
         conn_conf, bot_conf = self.config.get('Connection', {}), self.config.get('Bot', {})
@@ -93,7 +97,7 @@ class MyTeamTalkBot(TeamTalk):
             wx.CallAfter(self.main_window.log_message, msg)
         else:
             # When in non-GUI mode, just log to the standard logger
-            logging.info(f"[Bot] {msg}")
+            self.logger.info(f"[Bot] {msg}")
     def _send_pm(self, to_id, msg): self._send_text_message(msg, TextMsgType.MSGTYPE_USER, nToUserID=to_id)
     def _send_channel_message(self, chan_id, msg): return self._send_text_message(msg, TextMsgType.MSGTYPE_CHANNEL, nChannelID=chan_id)
     def _send_broadcast(self, msg): return self._send_text_message(msg, TextMsgType.MSGTYPE_BROADCAST)
@@ -159,7 +163,7 @@ class MyTeamTalkBot(TeamTalk):
         try:
             return next((u for u in self.getServerUsers() if ttstr(u.szNickname).lower() == target_nick), None)
         except TeamTalkError as e:
-            if e.errnum != ClientError.CMDERR_NOT_LOGGEDIN: logging.error(f"SDK error in _find_user_by_nick: {e}"); return None
+            if e.errnum != ClientError.CMDERR_NOT_LOGGEDIN: self.logger.error(f"SDK error in _find_user_by_nick: {e}"); return None
     def _save_runtime_config(self, save_gemini_key=False):
         self._log_to_gui("Saving runtime config..."); self.config['Bot']['filtered_words'] = ','.join(sorted(list(self.filtered_words)))
         self.config['Connection']['nickname'] = ttstr(self.nickname); self.config['Bot']['status_message'] = ttstr(self.status_message)
@@ -278,13 +282,12 @@ class MyTeamTalkBot(TeamTalk):
         self.toggle_feature('context_history_enabled', "Context History ON", "Context History OFF")
 
     def _apply_debug_logging_setting(self):
-        root_logger = logging.getLogger()
         if self.debug_logging_enabled:
-            root_logger.setLevel(logging.DEBUG)
-            self._log_to_gui("Debug logging is now ON.")
+            self.logger.setLevel(logging.DEBUG)
+            self.logger.info("Debug logging is now ON.")
         else:
-            root_logger.setLevel(logging.INFO)
-            self._log_to_gui("Debug logging is now OFF.")
+            self.logger.setLevel(logging.INFO)
+            self.logger.info("Debug logging is now OFF.")
 
     def toggle_debug_logging(self):
         self.debug_logging_enabled = not self.debug_logging_enabled

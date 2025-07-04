@@ -1,24 +1,7 @@
-import sys, threading, signal, logging, time
-from logging.handlers import RotatingFileHandler
+import sys, threading, signal, time
 from config_manager import load_config, save_config, DEFAULT_CONFIG
 from bot import MyTeamTalkBot, TeamTalkError
-
-def setup_logging():
-    log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    log_file = 'bot.log'
-    file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=2, encoding='utf-8')
-    file_handler.setFormatter(log_formatter)
-    
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(log_formatter)
-    console_handler.setLevel(logging.INFO) # Set console handler level
-    console_handler.setFormatter(log_formatter)
-    console_handler.encoding = 'utf-8' # Explicitly set encoding for console output
-
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
-    root_logger.addHandler(file_handler)
-    root_logger.addHandler(console_handler)
+from logger_config import bot_logger, setup_logging # Import from new module
 
 # InteractiveShell dihapus karena tidak relevan untuk Web UI
 
@@ -32,13 +15,14 @@ class ApplicationController:
         self.main_gui_window = None
         self.exit_event = threading.Event()
         self.restart_requested = threading.Event()
+        self.logger = bot_logger # Use the named logger
 
     def start(self):
         # Metode ini tidak akan dipanggil langsung oleh web_ui.py
         # Web UI akan memanggil start_bot_session() secara langsung
         self.config = self._load_or_prompt_config()
         if not self.config:
-            logging.critical("Configuration failed. Exiting.")
+            self.logger.critical("Configuration failed. Exiting.")
             return
 
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -46,7 +30,7 @@ class ApplicationController:
 
         if self.nogui:
             # Ini adalah mode konsol, tidak relevan untuk Web UI
-            logging.info("Starting bot in non-GUI mode. Press Ctrl+C or type 'exit' to stop.")
+            self.logger.info("Starting bot in non-GUI mode. Press Ctrl+C or type 'exit' to stop.")
             while not self.exit_event.is_set():
                 self.restart_requested.clear()
                 self.start_bot_session()
@@ -55,21 +39,21 @@ class ApplicationController:
                     try:
                         self.bot_thread.join(1) 
                     except KeyboardInterrupt:
-                        logging.info("KeyboardInterrupt caught in main loop.")
+                        self.logger.info("KeyboardInterrupt caught in main loop.")
                         self.exit_event.set()
 
                 if self.restart_requested.is_set():
-                    logging.info("Bot restart requested. Stopping current bot instance...")
+                    self.logger.info("Bot restart requested. Stopping current bot instance...")
                     if self.bot_instance:
                         self.bot_instance._mark_stopped_intentionally() 
                         self.bot_instance.stop() 
                     if self.bot_thread and self.bot_thread.is_alive():
                         self.bot_thread.join(5) 
                         if self.bot_thread.is_alive():
-                            logging.warning("Bot thread did not terminate gracefully after restart request.")
-                    logging.info("Restarting bot session...")
+                            self.logger.warning("Bot thread did not terminate gracefully after restart request.")
+                    self.logger.info("Restarting bot session...")
                 elif not self.exit_event.is_set():
-                    logging.warning("Bot thread terminated unexpectedly. Restarting in 15 seconds...")
+                    self.logger.warning("Bot thread terminated unexpectedly. Restarting in 15 seconds...")
                     time.sleep(15)
             self.shutdown()
         else:
@@ -79,7 +63,7 @@ class ApplicationController:
                 from gui.config_dialog import ConfigDialog
                 from gui.main_window import MainBotWindow
             except ImportError:
-                logging.critical("wxPython or GUI modules not found. Cannot run in GUI mode.")
+                self.logger.critical("wxPython or GUI modules not found. Cannot run in GUI mode.")
                 self.exit_event.set()
                 return
 
@@ -98,7 +82,7 @@ class ApplicationController:
         
         # Untuk Web UI, kita tidak akan meminta konfigurasi di sini
         # Konfigurasi harus dimuat atau diatur melalui API
-        logging.warning("Configuration not found. Please configure via Web UI.")
+        self.logger.warning("Configuration not found. Please configure via Web UI.")
         return None
 
     def _prompt_for_config_gui(self):
@@ -111,11 +95,11 @@ class ApplicationController:
 
     def start_bot_session(self):
         if self.bot_thread and self.bot_thread.is_alive():
-            logging.info("Bot session already running.")
+            self.logger.info("Bot session already running.")
             return
         
         if not self.config:
-            logging.error("Cannot start bot: Configuration is not loaded.")
+            self.logger.error("Cannot start bot: Configuration is not loaded.")
             return
 
         self.exit_event.clear() # Clear exit event for new session
@@ -123,7 +107,7 @@ class ApplicationController:
 
         self.bot_thread = threading.Thread(target=self._bot_thread_func, daemon=True)
         self.bot_thread.start()
-        logging.info("New bot session started.")
+        self.logger.info("New bot session started.")
 
     def _bot_thread_func(self):
         try:
@@ -132,41 +116,66 @@ class ApplicationController:
             #     self.bot_instance.set_main_window(self.main_gui_window)
             self.bot_instance.start()
         except Exception as e:
-            logging.critical(f"Bot thread failed with unhandled exception: {e}", exc_info=True)
+            self.logger.critical(f"Bot thread failed with unhandled exception: {e}", exc_info=True)
         finally:
-            logging.info("Bot thread finished execution.")
+            self.logger.info("Bot thread finished execution.")
             self.bot_instance = None
 
     def request_restart(self):
-        logging.info("Restart requested by controller.")
-        if self.bot_instance:
-            self.bot_instance._mark_stopped_intentionally()
-            self.bot_instance.stop()
-            # Give some time for the bot to stop before restarting
-            time.sleep(2) 
+        
+        if self.restart_requested.is_set():
+            self.logger.warning("Restart is already in progress.")
+            return
+
+        self.logger.info("Restart requested by controller.")
         self.restart_requested.set()
-        self.exit_event.set() # Signal main loop to exit and potentially restart
+
+        def restart_thread_func():
+            if self.bot_instance:
+                self.logger.info("Stopping bot instance...")
+                self.bot_instance._mark_stopped_intentionally()
+                self.bot_instance.stop()
+            
+            if self.bot_thread and self.bot_thread.is_alive():
+                self.logger.info("Waiting for bot thread to terminate...")
+                self.bot_thread.join(10.0) # Wait up to 10 seconds
+                if self.bot_thread.is_alive():
+                    self.logger.error("Bot thread did not terminate gracefully. Restart aborted.")
+                    self.restart_requested.clear()
+                    return
+
+            self.logger.info("Bot stopped. Restarting in 3 seconds...")
+            time.sleep(3)
+
+            # Start a new bot session
+            self.logger.info("Starting new bot session...")
+            self.start_bot_session()
+            self.restart_requested.clear()
+            self.logger.info("Bot restart process completed.")
+
+        restart_thread = threading.Thread(target=restart_thread_func, daemon=True)
+        restart_thread.start()
 
     def _signal_handler(self, sig, frame):
         if self.exit_event.is_set():
-            logging.warning("Shutdown already in progress.")
+            self.logger.warning("Shutdown already in progress.")
             return
-        logging.info(f"Signal {sig} received, initiating shutdown...")
+        self.logger.info(f"Signal {sig} received, initiating shutdown...")
         self.exit_event.set()
 
     def request_shutdown(self):
-        logging.info("Shutdown requested by controller.")
+        self.logger.info("Shutdown requested by controller.")
         self.exit_event.set()
         if self.bot_instance:
             self.bot_instance._mark_stopped_intentionally()
             self.bot_instance.stop()
 
     def shutdown(self):
-        logging.info("Shutdown sequence started.")
+        self.logger.info("Shutdown sequence started.")
         if self.bot_instance:
             self.bot_instance._mark_stopped_intentionally()
             self.bot_instance.stop()
         if self.bot_thread and self.bot_thread.is_alive():
-            logging.info("Waiting for bot thread to terminate...")
+            self.logger.info("Waiting for bot thread to terminate...")
             self.bot_thread.join(5.0)
-        logging.info("Cleanup complete. Exiting.")
+        self.logger.info("Cleanup complete. Exiting.")

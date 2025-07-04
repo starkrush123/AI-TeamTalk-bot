@@ -3,7 +3,6 @@ const statusIndicator = document.getElementById('statusIndicator');
 const startButton = document.getElementById('startButton');
 const stopButton = document.getElementById('stopButton');
 const restartButton = document.getElementById('restartButton');
-const refreshButton = document.getElementById('refreshButton');
 const featureListDiv = document.getElementById('featureList');
 const configAccordion = document.getElementById('configAccordion');
 const saveConfigButton = document.getElementById('saveConfigButton');
@@ -248,7 +247,7 @@ async function fetchUsers() {
         row.innerHTML = `
             <td>${user.username}</td>
             <td>
-                <button class="btn btn-danger btn-sm delete-user-btn" data-user-id="${user.id}">Delete</button>
+                <button class="btn btn-danger btn-sm delete-user-btn" data-user-id="${user.id}">Delete</n                <button class="btn btn-danger btn-sm delete-user-btn" data-user-id="${user.id}">Delete</button>
             </td>
         `;
     });
@@ -323,11 +322,6 @@ restartButton.addEventListener('click', async () => {
     fetchStatus();
 });
 
-refreshButton.addEventListener('click', () => {
-    fetchStatus();
-    fetchLogs();
-});
-
 saveConfigButton.addEventListener('click', async () => {
     try {
         const newConfig = getConfigFromForm();
@@ -370,6 +364,9 @@ myTabEl.addEventListener('shown.bs.tab', event => {
 // Initial fetch for the active tab (Status tab is active by default)
 fetchStatus();
 fetchLogs(); // Always fetch logs initially, as it's a common need
+
+// Refresh status every 5 seconds
+setInterval(fetchStatus, 5000);
 
 // Refresh logs every 5 seconds, regardless of tab, but only if logs tab is active
 setInterval(() => {

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Configuration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Setup Bot Configuration</h1>
+        <p>It looks like your configuration file is missing or invalid. Please set up your bot by filling out the details below.</p>
+
+        <form id="configForm" action="/config" method="POST">
+            {% for section, options in default_config.items() %}
+            <h2>{{ section }}</h2>
+            {% for key, value in options.items() %}
+            <div class="form-group">
+                <label for="{{ section }}_{{ key }}">{{ key.replace('_', ' ').title() }}:</label>
+                {% if value == 'True' or value == 'False' %}
+                <input type="checkbox" id="{{ section }}_{{ key }}" name="{{ section }}_{{ key }}" {% if value == 'True' %}checked{% endif %}>
+                {% else %}
+                <input type="text" id="{{ section }}_{{ key }}" name="{{ section }}_{{ key }}" value="{{ value }}">
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% endfor %}
+            <button type="submit" class="btn btn-primary">Save Configuration</button>
+        </form>
+
+        <div id="message" class="alert" style="display:none;"></div>
+    </div>
+</body>
+</html>
