@@ -45,11 +45,13 @@ class MyTeamTalkBot(TeamTalk):
         self.context_history_enabled = bot_conf.get('context_history_enabled', True)
         self.debug_logging_enabled = bot_conf.get('debug_logging_enabled', False) # New attribute for debug logging
         self.ai_system_instructions = bot_conf.get('ai_system_instructions', '') # New attribute for AI system instructions
+        self.welcome_message_instructions = bot_conf.get('welcome_message_instructions', '') # New attribute for welcome message instructions
         self.gemini_service = GeminiService(
             api_key=bot_conf.get('gemini_api_key'),
             context_history_enabled=self.context_history_enabled,
             model_name=bot_conf.get('gemini_model_name', 'gemini-1.5-flash-latest'),
-            system_instructions=self.ai_system_instructions
+            system_instructions=self.ai_system_instructions,
+            welcome_instructions=self.welcome_message_instructions
         )
         self.weather_service = WeatherService(bot_conf.get('weather_api_key'))
         self.context_history_manager = ContextHistoryManager(
@@ -76,6 +78,13 @@ class MyTeamTalkBot(TeamTalk):
         self.config['Bot']['ai_system_instructions'] = instructions
         self._save_runtime_config()
         self.gemini_service.set_system_instructions(instructions)
+        return True
+
+    def set_welcome_message_instructions(self, instructions):
+        self.welcome_message_instructions = instructions
+        self.config['Bot']['welcome_message_instructions'] = instructions
+        self._save_runtime_config()
+        self.gemini_service.set_welcome_instructions(instructions)
         return True
 
     def set_main_window(self, window): self.main_window = window; self._log_to_gui("GUI window linked.")
@@ -115,7 +124,7 @@ class MyTeamTalkBot(TeamTalk):
                     return False
 
         if user_id:
-            self.context_history_manager.add_message(user_id, message, is_bot=True)
+            self.context_history_manager.add_message(user_id, message, self.nickname, is_bot=True)
         return True
 
     def _split_message(self, message, max_len=512):
@@ -215,7 +224,7 @@ class MyTeamTalkBot(TeamTalk):
         else:
             self._update_admin_ids() # Update admin IDs when a user joins
             if self.announce_join_leave and user.nChannelID == self.getMyChannelID():
-                welcome_msg = self.gemini_service.generate_welcome_message() if self.welcome_message_mode == "gemini" and self.gemini_service.is_enabled() else f"Welcome, {ttstr(user.szNickname)}!"
+                welcome_msg = self.gemini_service.generate_welcome_message(ttstr(user.szNickname)) if self.welcome_message_mode == "gemini" and self.gemini_service.is_enabled() else f"Welcome, {ttstr(user.szNickname)}!"
                 self._send_channel_message(user.nChannelID, welcome_msg)
     
     def onCmdUserLeftChannel(self, chan_id, user):
@@ -231,7 +240,8 @@ class MyTeamTalkBot(TeamTalk):
         
         # Add incoming message to context history
         if textmessage.nMsgType == TextMsgType.MSGTYPE_USER:
-            self.context_history_manager.add_message(str(textmessage.nFromUserID), full_msg, is_bot=False)
+            sender_nick = ttstr(self.getUser(textmessage.nFromUserID).szNickname)
+            self.context_history_manager.add_message(str(textmessage.nFromUserID), full_msg, sender_nick, is_bot=False)
 
         log_prefix = ""
         if textmessage.nMsgType == TextMsgType.MSGTYPE_CHANNEL: log_prefix=f"[{ttstr(self.getChannelPath(textmessage.nChannelID))}]"

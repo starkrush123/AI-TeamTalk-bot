@@ -83,3 +83,21 @@ def handle_del_word(bot, msg_from_id, args_str, **kwargs):
         bot.filter_enabled = False
     bot._save_runtime_config()
     bot._send_pm(msg_from_id, f"Word '{word}' removed from filter.")
+
+def handle_set_ai_system_instructions(bot, msg_from_id, args_str, **kwargs):
+    if not args_str:
+        bot._send_pm(msg_from_id, "Usage: set_ai_system_instructions <instructions>"); return
+    instructions = args_str.strip()
+    if bot.set_ai_system_instructions(instructions):
+        bot._send_pm(msg_from_id, "AI system instructions updated.")
+    else:
+        bot._send_pm(msg_from_id, "Failed to update AI system instructions.")
+
+def handle_set_welcome_instruction(bot, msg_from_id, args_str, **kwargs):
+    if not args_str:
+        bot._send_pm(msg_from_id, "Usage: setwelcomeinstruction <instructions>"); return
+    instructions = args_str.strip()
+    if bot.set_welcome_message_instructions(instructions):
+        bot._send_pm(msg_from_id, "Welcome message instructions updated.")
+    else:
+        bot._send_pm(msg_from_id, "Failed to update welcome message instructions.")

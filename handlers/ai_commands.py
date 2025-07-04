@@ -23,7 +23,8 @@ def handle_pm_ai(bot, msg_from_id, args_str, **kwargs):
     bot._send_pm(msg_from_id, reply)
 
 def handle_channel_ai(bot, msg_from_id, sender_nick, channel_id, args_str, **kwargs):
-    if not bot.allow_gemini_channel: return
+    if not bot.allow_gemini_channel:
+        bot._send_channel_message(channel_id, "[Bot] Gemini AI (Channel) is disabled."); return
     if not bot.gemini_service.is_enabled():
         bot._send_channel_message(channel_id, "[Bot Error] Gemini AI is not available."); return
 
@@ -35,7 +36,7 @@ def handle_channel_ai(bot, msg_from_id, sender_nick, channel_id, args_str, **kwa
     user_channel_context_key = f"{channel_id}-{msg_from_id}"
 
     # Add user's prompt to their specific channel context history
-    bot.context_history_manager.add_message(user_channel_context_key, prompt, is_bot=False)
+    bot.context_history_manager.add_message(user_channel_context_key, prompt, sender_nick, is_bot=False)
 
     bot._send_channel_message(channel_id, f"[Bot] Asking Gemini for {sender_nick}...")
     history = bot.context_history_manager.get_history(user_channel_context_key)
@@ -43,5 +44,5 @@ def handle_channel_ai(bot, msg_from_id, sender_nick, channel_id, args_str, **kwa
     reply = bot.gemini_service.generate_content(prompt, history=history)
     logging.debug(f"Gemini reply for user_channel_context_key {user_channel_context_key}: {reply}")
     # Add bot's reply to user's specific channel context history
-    bot.context_history_manager.add_message(user_channel_context_key, reply, is_bot=True)
+    bot.context_history_manager.add_message(user_channel_context_key, reply, bot.nickname, is_bot=True)
     bot._send_channel_message(channel_id, f"Answering {sender_nick}: {reply}")

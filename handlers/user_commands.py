@@ -32,35 +32,40 @@ def handle_help(bot, msg_from_id, **kwargs):
 
     if is_admin:
         help_lines.append("\n--- Admin Commands ---")
-        help_lines.append("- gapi: Set Gemini API key.")
-        help_lines.append("- list_gemini_models / lgm: List available Gemini models.")
-        help_lines.append("- set_gemini_model <model_name> / sgm <model_name>: Set the active Gemini model.")
-        help_lines.append("- addword <word>: Adds a word to the word filter.")
-        help_lines.append("- delword <word>: Removes a word from the word filter.")
-        help_lines.append("- set_context_retention: Set context history retention.")
-        help_lines.append("- jcl: Toggle join/leave announcements.")
-        help_lines.append("- tg_chanmsg: Toggle channel messages.")
-        help_lines.append("- tg_broadcast: Toggle broadcast messages.")
-        help_lines.append("- tg_gemini_pm: Toggle Gemini PM.")
-        help_lines.append("- tg_gemini_chan: Toggle Gemini channel messages.")
-        help_lines.append("- tgmmode: Toggle welcome message mode.")
-        help_lines.append("- tfilter: Toggle filter.")
-        help_lines.append("- tg_context_history: Toggle context history.")
-        help_lines.append("- tg_debug_logging: Toggle debug logging.")
-        help_lines.append("- lock: Lock/unlock bot.")
-        help_lines.append("- block / unblock: Block/unblock commands.")
+        admin_commands_list = [
+            "- gapi: Set Gemini API key.",
+            "- list_gemini_models / lgm: List available Gemini models.",
+            "- set_gemini_model <model_name> / sgm <model_name>: Set the active Gemini model.",
+            "- addword <word>: Adds a word to the word filter.",
+            "- delword <word>: Removes a word from the word filter.",
+            "- set_context_retention: Set context history retention.",
+            "- jcl: Toggle join/leave announcements.",
+            "- tg_chanmsg: Toggle channel messages.",
+            "- tg_broadcast: Toggle broadcast messages.",
+            "- tg_gemini_pm: Toggle Gemini PM.",
+            "- tg_gemini_chan: Toggle Gemini channel messages.",
+            "- tgmmode: Toggle welcome message mode.",
+            "- tfilter: Toggle filter.",
+            "- tg_context_history: Toggle context history.",
+            "- tg_debug_logging: Toggle debug logging.",
+            "- lock: Lock/unlock bot.",
+            "- block / unblock: Block/unblock commands.",
+            "- listusers: List all users.",
+            "- listchannels: List all channels.",
+            "- move: Move user to channel.",
+            "- kick: Kick user.",
+            "- ban: Ban user.",
+            "- unban: Unban user.",
+            "- admins: List configured admins and their online status.",
+            "- instruct: Set AI system instructions.",
+            "- setwelcomeinstruction: Set welcome message instructions.",
+            "- jc: Join channel.",
+            "- ct: Send message to bot's channel.",
+            "- bm: Send broadcast message.",
+        ]
+        help_lines.extend(admin_commands_list)
         help_lines.append("- rs: Restart bot.")
         help_lines.append("- q: Quit bot.")
-        help_lines.append("- listusers: List all users.")
-        help_lines.append("- listchannels: List all channels.")
-        help_lines.append("- move: Move user to channel.")
-        help_lines.append("- kick: Kick user.")
-        help_lines.append("- ban: Ban user.")
-        help_lines.append("- unban: Unban user.")
-        help_lines.append("- instruct: Set AI system instructions.")
-        help_lines.append("- jc: Join channel.")
-        help_lines.append("- ct: Send message to bot's channel.")
-        help_lines.append("- bm: Send broadcast message.")
     
 
     bot._send_pm(msg_from_id, "\n".join(help_lines))
@@ -159,6 +164,7 @@ COMMAND_MAP_PM = {
     "vote": poll_commands.handle_vote,
     "results": poll_commands.handle_results,
     "instruct": ai_instructions.handle_instruct_command,
+    "setwelcomeinstruction": config_management.handle_set_welcome_instruction,
 }
 
 ADMIN_COMMANDS = {
@@ -194,7 +200,8 @@ ADMIN_COMMANDS = {
     "kick": user_management.handle_kick_user,
     "ban": user_management.handle_ban_user,
     "unban": user_management.handle_unban_user,
-    "instruct": ai_instructions.handle_instruct_command,
+            "admins": user_management.handle_list_admins,
+            "instruct": ai_instructions.handle_instruct_command,
     # Admin - Channel Management
     "jc": channel_management.handle_join_channel,
     "ct": communication_commands.handle_channel_text,

@@ -61,3 +61,28 @@ def handle_unban_user(bot, msg_from_id, args_str, **kwargs):
     ban_entry = BannedUser(); ban_entry.szUsername = ttstr(username); ban_entry.uBanTypes = BanType.BANTYPE_USERNAME
     bot.doUnBanUserEx(ban_entry)
     bot._send_pm(msg_from_id, f"Unban command sent for user '{username}'.")
+
+def handle_list_admins(bot, msg_from_id, **kwargs):
+    configured_admins = set(bot.admin_usernames_config)
+    online_users = bot.getServerUsers() or []
+    online_usernames = {ttstr(u.szUsername).lower() for u in online_users}
+    online_nicknames = {ttstr(u.szNickname).lower(): ttstr(u.szUsername).lower() for u in online_users}
+
+    admin_status_messages = ["--- Admin Status ---"]
+
+    # Check configured admins
+    for admin_username in sorted(list(configured_admins)):
+        status = "Offline"
+        if admin_username in online_usernames:
+            status = "Online"
+        admin_status_messages.append(f"- {admin_username} (Configured): {status}")
+    
+    # Check if any online user is an admin by nickname but not by username (less reliable)
+    for online_nick, online_user in online_nicknames.items():
+        if online_user not in configured_admins and online_nick in configured_admins:
+             admin_status_messages.append(f"- {online_nick} (Online by Nick, not Configured by User): Online")
+
+    if not configured_admins:
+        admin_status_messages.append("No admin usernames configured in bot settings.")
+
+    bot._send_pm(msg_from_id, "\n".join(admin_status_messages))

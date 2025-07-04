@@ -12,12 +12,12 @@ class ContextHistoryManager:
         self._lock = threading.Lock()
         logging.debug(f"ContextHistoryManager initialized with retention: {retention_minutes} minutes, max_messages: {max_messages}")
 
-    def add_message(self, user_id: str, message: str, is_bot: bool = False):
+    def add_message(self, user_id: str, message: str, sender_nick: str, is_bot: bool = False):
         with self._lock:
             timestamp = datetime.datetime.now()
-            self.history[user_id].append({'message': message, 'timestamp': timestamp, 'is_bot': is_bot})
+            self.history[user_id].append({'message': message, 'timestamp': timestamp, 'sender_nick': sender_nick, 'is_bot': is_bot})
             self._prune_history(user_id)
-            logging.debug(f"Added message for user_id {user_id}. Current history length: {len(self.history[user_id])}")
+            logging.debug(f"Added message from '{sender_nick}' for user_id {user_id}. Current history length: {len(self.history[user_id])}")
 
     def get_history(self, user_id: str) -> list[dict]:
         with self._lock:
