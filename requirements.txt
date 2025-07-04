@@ -1,3 +1,5 @@
 wxPython
 google-generativeai
 requests
+SQLAlchemy
+Flask-SQLAlchemy

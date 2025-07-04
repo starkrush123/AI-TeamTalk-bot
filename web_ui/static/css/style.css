@@ -1,0 +1,86 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #e0f7fa; /* Light Cyan */
+    color: #263238; /* Dark Blue Grey */
+    padding-top: 20px;
+}
+.container {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    margin-bottom: 30px;
+}
+h1, h2 {
+    color: #00796b; /* Dark Cyan */
+    margin-bottom: 20px;
+    border-bottom: 2px solid #b2dfdb; /* Light Teal */
+    padding-bottom: 10px;
+}
+.btn-primary {
+    background-color: #00796b; /* Dark Cyan */
+    border-color: #00796b;
+}
+.btn-primary:hover {
+    background-color: #004d40; /* Even Darker Cyan */
+    border-color: #004d40;
+}
+.btn-danger {
+    background-color: #d32f2f; /* Red */
+    border-color: #d32f2f;
+}
+.btn-danger:hover {
+    background-color: #b71c1c; /* Darker Red */
+    border-color: #b71c1c;
+}
+.status-indicator {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    margin-left: 10px;
+    vertical-align: middle;
+    border: 2px solid #ccc;
+}
+.status-indicator.running { background-color: #4caf50; border-color: #388e3c; } /* Green */
+.status-indicator.stopped { background-color: #f44336; border-color: #d32f2f; } /* Red */
+.feature-card, .config-card {
+    background-color: #f0fdfa; /* Very Light Cyan */
+    border: 1px solid #b2dfdb;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.form-label {
+    font-weight: bold;
+    color: #00796b;
+}
+.log-container {
+    background-color: #263238; /* Dark Blue Grey */
+    color: #eceff1; /* Light Blue Grey */
+    border: 1px solid #37474f;
+    border-radius: 8px;
+    padding: 15px;
+    height: 400px;
+    overflow-y: scroll;
+    white-space: pre-wrap;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+.accordion-button {
+    background-color: #e0f2f7; /* Light Blue */
+    color: #00796b; /* Dark Cyan */
+    font-weight: bold;
+}
+.accordion-button:not(.collapsed) {
+    color: #004d40;
+    background-color: #b2ebf2; /* Lighter Blue */
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,.125);
+}
+.accordion-body {
+    background-color: #f8fdfd;
+    border: 1px solid #e0f2f7;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+}

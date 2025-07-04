@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamTalk Bot Control</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">TeamTalk Bot Control Panel</h1>
+        <div class="text-end mb-3">
+            <a href="/logout" class="btn btn-outline-secondary">Logout</a>
+        </div>
+
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="status-tab" data-bs-toggle="tab" data-bs-target="#status" type="button" role="tab" aria-controls="status" aria-selected="true">Status</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Settings</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="user-management-tab" data-bs-toggle="tab" data-bs-target="#user-management" type="button" role="tab" aria-controls="user-management" aria-selected="false">User Management</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab" aria-controls="logs" aria-selected="false">Logs</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="status" role="tabpanel" aria-labelledby="status-tab">
+                <div class="card mt-3 mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="card-title mb-0 text-white">Bot Status</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="lead mb-0">
+                            Status: <span id="botStatus">Loading...</span> 
+                            <span id="statusIndicator" class="status-indicator"></span>
+                        </p>
+                        <div class="mt-3">
+                            <button id="startButton" class="btn btn-success me-2">Start Bot</button>
+                            <button id="stopButton" class="btn btn-danger me-2">Stop Bot</button>
+                            <button id="restartButton" class="btn btn-warning me-2" style="display:none;">Restart Bot</button>
+                            <button id="refreshButton" class="btn btn-info">Refresh Status</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="card-title mb-0 text-white">Features</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="featureList" class="row row-cols-1 row-cols-md-2 g-3">Loading features...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                <div class="card mt-3 mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="card-title mb-0 text-white">Configuration</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion" id="configAccordion">
+                            <!-- Config sections will be dynamically loaded here -->
+                        </div>
+                        <button id="saveConfigButton" class="btn btn-primary mt-3">Save Configuration</button>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="user-management" role="tabpanel" aria-labelledby="user-management-tab">
+                <div class="card mt-3 mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="card-title mb-0 text-white">User Management</h2>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addUserModal">Add New User</button>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userListTableBody">
+                                <!-- Users will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+                <div class="card mt-3 mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="card-title mb-0 text-white">Bot Logs</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="logContainer" class="log-container">Loading logs...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addUserForm">
+                        <div class="mb-3">
+                            <label for="newUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="newUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="newPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add User</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

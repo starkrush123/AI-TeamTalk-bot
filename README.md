@@ -2,13 +2,16 @@
 
 [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
 
-An advanced TeamTalk bot integrated with Google Gemini AI to provide intelligent chat functionality, moderation, and interactive commands. The bot can be run in a GUI mode (using wxPython) or as a standalone console application.
+An advanced TeamTalk bot integrated with Google Gemini AI to provide intelligent chat functionality, moderation, and interactive commands. The bot can be run in a GUI mode (using wxPython) or as a standalone console application, and now features a web-based control panel.
 
 - **Author**: [starkrush123](https://github.com/starkrush123)
 
 ## Key Features
 
 - **TeamTalk Integration**: Connects to a TeamTalk server, joins channels, and interacts with users.
+- **Web-based Control Panel (Web UI)**: Manage your bot remotely via a modern, responsive web interface.
+    - **Secure Authentication**: User management system with database-backed authentication (SQLite by default).
+    - **Tabbed Interface**: Organized control panel with dedicated tabs for Status, Settings, User Management, and Logs.
 - **Artificial Intelligence (AI)**:
     - Integrated with **Google Gemini** to answer questions in PMs and channels.
     - **Context History**: Remembers previous conversations within a session for more relevant responses.
@@ -28,8 +31,8 @@ An advanced TeamTalk bot integrated with Google Gemini AI to provide intelligent
     - **User Management**: Kick and ban users from channels.
 - **Flexible Configuration**:
     - Initial setup via a GUI dialog or console prompts.
-    - Configuration is saved in a `config.ini` file.
-    - Many settings can be changed at runtime.
+    - Configuration is saved in a `config.json` file.
+    - Many settings can be changed at runtime, now primarily via the Web UI.
 
 ## Requirements
 
@@ -38,12 +41,14 @@ The project requires the following Python dependencies:
 - `wxPython`: For the graphical user interface.
 - `google-generativeai`: For integration with the Google Gemini API.
 - `requests`: For making HTTP requests (e.g., weather service).
+- `SQLAlchemy`: For database ORM.
+- `Flask-SQLAlchemy`: Flask extension for SQLAlchemy.
 
 ## Installation
 
 1.  **Clone the Repository**
     ```bash
-    git clone <https://github.com/starkrush123/AI-TeamTalk-bot>>
+    git clone <https://github.com/starkrush123/AI-TeamTalk-bot>
     cd AI-TeamTalk-Bot
     ```
 
@@ -62,7 +67,8 @@ The project requires the following Python dependencies:
 
 ## Configuration
 
-When you first run the bot, you will be prompted to provide configuration details either through a GUI dialog or console prompts. These settings will be saved to a `config.ini` file.
+When you first run the bot, you will be prompted to provide configuration details either through a GUI dialog or console prompts. These settings will be saved to a `config.json` file.
+**It is highly recommended to manage configuration via the Web UI for ease of use and remote access.**
 
 Here is a breakdown of the configuration sections:
 
@@ -87,9 +93,20 @@ Here is a breakdown of the configuration sections:
 
 ## Usage
 
-You can run the bot in either GUI or Console mode.
+You can run the bot in GUI, Console, or Web UI mode.
 
-### GUI Mode (Recommended)
+### Web UI Mode (Recommended for remote management)
+
+Run `web_ui.py` to start the web-based control panel.
+
+```bash
+python web_ui.py
+```
+Open your web browser and navigate to `http://127.0.0.1:5000/`.
+Default login credentials: **Username: `admin`**, **Password: `password`**.
+You can manage bot status, features, configuration, and users through the intuitive web interface.
+
+### GUI Mode
 
 Run `main_gui.py` to start the bot with the graphical user interface.
 
@@ -105,7 +122,7 @@ Run `main.py` to start the bot in headless mode.
 ```bash
 python main.py
 ```
-In this mode, the bot will run in your console. You can manage it using the **Interactive Shell**.
+In this mode, the bot will run in your console. You can manage it using the **Interactive Shell** (see below).
 
 ## Interactive Shell (Console Mode Only)
 
