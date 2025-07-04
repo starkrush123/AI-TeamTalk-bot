@@ -20,12 +20,16 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="status-tab" data-bs-toggle="tab" data-bs-target="#status" type="button" role="tab" aria-controls="status" aria-selected="true">Status</button>
             </li>
+            {% if session.role == 'super_admin' %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Settings</button>
             </li>
+            {% endif %}
+            {% if session.role == 'super_admin' %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="user-management-tab" data-bs-toggle="tab" data-bs-target="#user-management" type="button" role="tab" aria-controls="user-management" aria-selected="false">User Management</button>
             </li>
+            {% endif %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab" aria-controls="logs" aria-selected="false">Logs</button>
             </li>
@@ -53,7 +57,7 @@
                         <h2 class="card-title mb-0 text-white">Features</h2>
                     </div>
                     <div class="card-body">
-                        <div id="featureList" class="row row-cols-1 row-cols-md-2 g-3">Loading features...</div>
+                        <div id="featureList" class="row row-cols-1 row-cols-md-2 g-3"></div>
                     </div>
                 </div>
             </div>
@@ -81,6 +85,7 @@
                             <thead>
                                 <tr>
                                     <th>Username</th>
+                                    <th>Role</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -97,7 +102,7 @@
                         <h2 class="card-title mb-0 text-white">Bot Logs</h2>
                     </div>
                     <div class="card-body">
-                        <div id="logContainer" class="log-container">Loading logs...</div>
+                        <div id="logContainer" class="log-container"></div>
                     </div>
                 </div>
             </div>
@@ -125,6 +130,21 @@
                         <div class="mb-3">
                             <label for="confirmPassword" class="form-label">Confirm Password</label>
                             <input type="password" class="form-control" id="confirmPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="role" id="roleAdmin" value="admin" checked>
+                                <label class="form-check-label" for="roleAdmin">
+                                    Admin
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="role" id="roleSuperAdmin" value="super_admin">
+                                <label class="form-check-label" for="roleSuperAdmin">
+                                    Super Admin
+                                </label>
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Add User</button>
                     </form>

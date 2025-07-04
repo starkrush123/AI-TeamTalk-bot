@@ -2,6 +2,8 @@
 import configparser
 import os
 import logging
+import secrets
+from dotenv import load_dotenv, set_key
 
 CONFIG_FILE = "config.ini"
 DEFAULT_CONFIG = {
@@ -29,10 +31,22 @@ DEFAULT_CONFIG = {
         'context_history_enabled': 'True',
         'debug_logging_enabled': 'False',
         'ai_system_instructions': ''
+    },
+    'WebUI': {
+        # 'secret_key': '' # Secret key is now managed via .env
     }
 }
 
 def load_config():
+    load_dotenv() # Load environment variables from .env
+
+    # Handle SECRET_KEY
+    secret_key = os.getenv('SECRET_KEY')
+    if not secret_key:
+        secret_key = secrets.token_hex(16)
+        set_key(os.path.join(os.getcwd(), '.env'), 'SECRET_KEY', secret_key) # Save to .env in current working directory
+        logging.info("Generated and saved a new SECRET_KEY to .env.")
+
     config = configparser.ConfigParser()
     if not os.path.exists(CONFIG_FILE):
         logging.warning(f"{CONFIG_FILE} not found. Will prompt for setup.")
@@ -40,11 +54,18 @@ def load_config():
 
     try:
         config.read(CONFIG_FILE)
+        
         if not config.has_section('Connection') or not config.has_section('Bot'):
             logging.error(f"Config file {CONFIG_FILE} is missing required sections. Please fix or delete it.")
             return None
         
         structured_config = {section: dict(config.items(section)) for section in config.sections()}
+        
+        # Add SECRET_KEY to structured_config for internal use, but not saved to config.ini
+        if 'WebUI' not in structured_config:
+            structured_config['WebUI'] = {}
+        structured_config['WebUI']['secret_key'] = secret_key
+
         # Ensure context_history_retention_minutes is an integer
         if 'Bot' in structured_config and 'context_history_retention_minutes' in structured_config['Bot']:
             try:
@@ -78,6 +99,7 @@ def save_config(structured_config_data):
     
     conn_data = structured_config_data.get('Connection', {})
     bot_data = structured_config_data.get('Bot', {})
+    # webui_data = structured_config_data.get('WebUI', {}) # No longer needed for saving secret_key
 
     config['Connection'] = {
         'host': conn_data.get('host', DEFAULT_CONFIG['Connection']['host']),
@@ -104,6 +126,10 @@ def save_config(structured_config_data):
         'debug_logging_enabled': str(bot_data.get('debug_logging_enabled', DEFAULT_CONFIG['Bot']['debug_logging_enabled'])),
         'ai_system_instructions': bot_data.get('ai_system_instructions', DEFAULT_CONFIG['Bot']['ai_system_instructions'])
     }
+    
+    # config['WebUI'] = { # No longer saving secret_key to config.ini
+    #     'secret_key': webui_data.get('secret_key', '')
+    # }
 
     try:
         with open(CONFIG_FILE, 'w') as configfile:

@@ -11,8 +11,9 @@
         <h1>Setup Bot Configuration</h1>
         <p>It looks like your configuration file is missing or invalid. Please set up your bot by filling out the details below.</p>
 
-        <form id="configForm" action="/config" method="POST">
+        <form id="configForm" action="/setup_config" method="POST">
             {% for section, options in default_config.items() %}
+            {% if section != 'WebUI' %}
             <h2>{{ section }}</h2>
             {% for key, value in options.items() %}
             <div class="form-group">
@@ -24,6 +25,7 @@
                 {% endif %}
             </div>
             {% endfor %}
+            {% endif %}
             {% endfor %}
             <button type="submit" class="btn btn-primary">Save Configuration</button>
         </form>

@@ -31,7 +31,7 @@ An advanced TeamTalk bot integrated with Google Gemini AI to provide intelligent
     - **User Management**: Kick and ban users from channels.
 - **Flexible Configuration**:
     - Initial setup via a GUI dialog or console prompts.
-    - Configuration is saved in a `config.json` file.
+    - Configuration is saved in a `config.ini` file.
     - Many settings can be changed at runtime, now primarily via the Web UI.
 
 ## Requirements
@@ -67,7 +67,7 @@ The project requires the following Python dependencies:
 
 ## Configuration
 
-When you first run the bot, you will be prompted to provide configuration details either through a GUI dialog or console prompts. These settings will be saved to a `config.json` file.
+When you first run the bot, you will be prompted to provide configuration details either through a GUI dialog or console prompts. These settings will be saved to a `config.ini` file.
 **It is highly recommended to manage configuration via the Web UI for ease of use and remote access.**
 
 Here is a breakdown of the configuration sections:
@@ -91,6 +91,9 @@ Here is a breakdown of the configuration sections:
 - `filtered_words`: A comma-separated list of words to filter.
 - `ai_system_instructions`: Default instructions for the AI.
 
+### `[WebUI]`
+- `secret_key`: A secret key for session management. This is generated automatically and should not be changed manually.
+
 ## Usage
 
 You can run the bot in GUI, Console, or Web UI mode.
@@ -103,8 +106,28 @@ Run `web_ui.py` to start the web-based control panel.
 python web_ui.py
 ```
 Open your web browser and navigate to `http://127.0.0.1:5000/`.
-Default login credentials: **Username: `admin`**, **Password: `password`**.
-You can manage bot status, features, configuration, and users through the intuitive web interface.
+
+#### First-Time Setup: Creating a Super Admin
+
+The first time you run the Web UI, you will be redirected to a registration page. The first user account created will automatically be assigned the **Super Admin** role. This account will have full control over the bot, including user management and system configuration.
+
+#### User Roles
+
+The control panel has two distinct user roles:
+
+-   **Super Admin**:
+    -   Can start, stop, and restart the bot.
+    -   Can toggle all operational features.
+    -   Can view logs.
+    -   Can manage all bot settings and configuration.
+    -   Can add, edit, and remove other users (both Admins and Super Admins).
+-   **Admin**:
+    -   Can start, stop, and restart the bot.
+    -   Can toggle all operational features.
+    -   Can view logs.
+    -   **Cannot** manage users or change the bot's core configuration.
+
+You can manage bot status, features, configuration, and users through the intuitive web interface after logging in.
 
 ### GUI Mode
 
@@ -138,53 +161,65 @@ When running in console mode, you can use the following commands in the terminal
 
 ### User Commands (Available to everyone)
 
-These commands can be used in a private message (PM) to the bot. Some are also available in channels.
+These commands can be used in a private message (PM) to the bot. Some are also available in channels as noted.
 
-**PM Commands:**
-- `h`: Displays a help message with a list of all available commands.
-- `c <question>`: Asks a question to the Gemini AI.
-- `w <location>`: Gets the current weather for a specific location.
-- `info`: Displays information about the bot.
-- `whoami`: Shows your username and user ID.
-- `poll <question>; <option1>; <option2>; ...`: Creates a new poll.
-- `vote <poll_id> <option_id>`: Casts a vote in an active poll.
+- `h`: Displays this help message.
+- `ping`: Checks if the bot is responding.
+- `info`: Displays bot status and server info.
+- `whoami`: Shows your user info.
+- `rights`: Shows the bot's permissions.
+- `cn <new_nick>`: Changes the bot's nickname.
+- `cs <new_status>`: Changes the bot's status message.
+- `w <location>`: Gets the current weather (also available as `/w <location>` in channels).
+- `c <question>`: Asks the Gemini AI a question via PM.
+- `/c <question>`: Asks the Gemini AI a question in the bot's current channel (if enabled).
+- `poll "Question" "Option A" "Option B" ...`: Creates a new poll.
+- `vote <poll_id> <option_number>`: Casts a vote in an active poll.
 - `results <poll_id>`: Displays the results of a poll.
-- `admins`: Lists all currently online bot admins.
-- `users`: Lists all users on the server.
-- `uptime`: Shows the bot's current uptime.
-
-**Channel Commands:**
-- `/w <location>`: Gets the current weather.
-- `/c <question>`: Asks a question to the AI in the channel (if enabled).
-- `/instruct <instructions>`: Gives the AI temporary instructions for the next interaction in the channel.
 
 ### Admin Commands (Admin Only)
 
-These commands can only be used by users registered as admins.
+These commands can only be used by users registered as admins in the bot's config.
 
+#### Bot Control & Toggles
 - `q`: Shuts down the bot.
 - `rs`: Restarts the bot.
-- `lock`: Locks the bot, ignoring all non-essential commands.
-- `block <command>`: Blocks a command from being used.
-- `unblock <command>`: Unblocks a command.
-- `blocked`: Lists all blocked commands.
-- `cn <new_nickname>`: Changes the bot's nickname.
-- `cs <new_message>`: Changes the bot's status message.
+- `lock`: Locks the bot, ignoring all non-admin commands.
+- `block <command>`: Blocks a user command.
+- `unblock <command>`: Unblocks a user command.
+- `jcl`: Toggles join/leave announcements ON/OFF.
+- `tg_chanmsg`: Toggles the bot's ability to send messages in the channel.
+- `tg_broadcast`: Toggles the bot's ability to send broadcast messages.
+- `tfilter`: Toggles the word filter ON/OFF.
+
+#### AI & Configuration
+- `gapi <api_key>`: Sets the Gemini API key.
+- `list_gemini_models` / `lgm`: Lists available Gemini models.
+- `set_gemini_model <model_name>` / `sgm <model_name>`: Sets the active Gemini model.
+- `instruct <instructions>`: Sets the permanent system instructions for the AI.
+- `setwelcomeinstruction <instructions>`: Sets the instructions for the AI-powered welcome message.
+- `tg_gemini_pm`: Toggles the AI in PMs ON/OFF.
+- `tg_gemini_chan`: Toggles the AI in channels ON/OFF.
+- `tgmmode`: Toggles the welcome message mode (template vs. Gemini).
+- `tg_context_history`: Toggles the context history feature ON/OFF.
+- `set_context_retention <minutes>`: Sets the AI context history retention period.
+- `tg_debug_logging`: Toggles debug logging ON/OFF.
+
+#### Moderation & User Management
 - `addword <word>`: Adds a word to the word filter.
 - `delword <word>`: Removes a word from the word filter.
-- `kick <nickname>`: Kicks a user from the channel.
-- `ban <nickname>`: Bans a user from the channel.
-- `join <channel_path>`: Makes the bot join another channel.
-- `tfilter`: Toggles the word filter ON/OFF.
-- `tjcl`: Toggles join/leave announcements ON/OFF.
-- `tchanmsg`: Allows/disallows the bot from sending messages in the channel.
-- `tbroadcast`: Allows/disallows the bot from sending broadcasts.
-- `tgeminipm`: Toggles the AI in PMs ON/OFF.
-- `tgeminichan`: Toggles the AI in channels ON/OFF.
-- `tgmmode`: Toggles the welcome message mode (template/gemini).
-- `sgm <model_name>`: Sets the Gemini AI model to use.
-- `lgm`: Lists all available Gemini models.
-- `setinstructions <instructions>`: Sets the permanent system instructions for the AI.
+- `listusers [channel_path]`: Lists users in the specified channel (or current channel if none specified).
+- `listchannels`: Lists all channels on the server.
+- `admins`: Lists all configured bot admins and their online status.
+- `kick <nickname>`: Kicks a user from the bot's current channel.
+- `ban <nickname>`: Bans a user from the server.
+- `unban <username>`: Unbans a user from the server.
+- `move <nickname> <channel_path>`: Moves a user to the specified channel.
+
+#### Communication & Channel
+- `jc <channel_path>[|password]`: Makes the bot join another channel.
+- `ct <message>`: Sends a message to the bot's current channel.
+- `bm <message>`: Sends a broadcast message to the entire server.
 
 ## License
 

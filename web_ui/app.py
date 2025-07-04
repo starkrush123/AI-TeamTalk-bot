@@ -4,59 +4,63 @@ import threading
 import os
 import json
 from functools import wraps
+from datetime import timedelta
+from dotenv import load_dotenv
 
 from bot_controller import ApplicationController
 from config_manager import load_config, save_config, DEFAULT_CONFIG
-from logger_config import setup_logging, bot_logger # Import setup_logging and bot_logger from logger_config
-from .database import db, User # Import db and User from database.py
+from logger_config import setup_logging, bot_logger
+from .database import db, User
+
+load_dotenv()
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
-app.secret_key = 'supersecretkey_for_session_management' # Ganti dengan kunci yang kuat di produksi
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db' # SQLite database file
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Disable tracking modifications
-db.init_app(app) # Initialize db with the Flask app
-app.logger.propagate = False # Prevent Flask logs from propagating to root logger
 
-# Global variable to hold the bot controller instance
-bot_controller = None
+initial_config = load_config()
+bot_logger.debug(f"Initial config loaded: {initial_config is not None}")
 
-# Initialize bot_controller when the app starts
+app.secret_key = os.getenv('SECRET_KEY', 'a_fallback_secret_key_if_env_not_set')
+app.permanent_session_lifetime = timedelta(minutes=5)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
+app.logger.propagate = False
+
+global bot_controller
+bot_controller = ApplicationController(nogui_mode=True)
+
+setup_logging()
+
 with app.app_context():
-    db.create_all() # Create database tables if they don't exist
-    # Create a default admin user if none exists
-    if not User.query.filter_by(username='admin').first():
-        admin_user = User(username='admin')
-        admin_user.set_password('password') # Default password
-        db.session.add(admin_user)
-        db.session.commit()
-        bot_logger.info("Default admin user created: admin/password")
-
-    setup_logging()
-    # Clear bot.log on fresh Flask app start, but not on bot restart
+    db.create_all()
     log_file_path = os.path.join(os.getcwd(), 'bot.log')
     if os.path.exists(log_file_path):
         try:
-            # Check if the bot is intentionally stopping (e.g., for a restart)
-            # This is a heuristic, a more robust solution might involve a flag
-            # passed from bot_controller to app.py during restart.
-            # For now, we assume a fresh app start means no bot_controller.bot_instance
-            # is running or it's not marked for intentional stop.
             if bot_controller is None or bot_controller.bot_instance is None or not bot_controller.bot_instance._intentional_stop:
                 with open(log_file_path, 'w') as f:
-                    f.truncate(0) # Clear the log file
+                    f.truncate(0)
                 bot_logger.info("bot.log cleared on fresh application start.")
         except Exception as e:
             bot_logger.error(f"Error clearing bot.log: {e}")
 
-    bot_controller = ApplicationController(nogui_mode=True)
-    bot_controller.config = load_config() # Load config at startup
+bot_controller.config = initial_config
+bot_logger.debug(f"Bot controller config set: {bot_controller.config is not None}")
 
-# Dekorator untuk memeriksa autentikasi
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'logged_in' not in session:
             return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def super_admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('role') != 'super_admin':
+            flash('You do not have permission to access this page.', 'danger')
+            return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -68,7 +72,9 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             session['logged_in'] = True
-            session['username'] = username # Store username in session
+            session['permanent'] = True
+            session['username'] = username
+            session['role'] = user.role
             flash('Logged in successfully.', 'success')
             return redirect(url_for('index'))
         else:
@@ -76,22 +82,41 @@ def login():
             return render_template('login.html', error='Invalid Credentials')
     return render_template('login.html')
 
+@app.before_request
+def check_for_first_user():
+    if not User.query.first():
+        if request.endpoint and request.endpoint not in ['register', 'static']:
+            return redirect(url_for('register'))
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    is_first_user = not User.query.first()
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        if User.query.filter_by(username=username).first():
+        
+        if not is_first_user and User.query.filter_by(username=username).first():
             flash('Username already exists.', 'danger')
-            return render_template('register.html')
+            return render_template('register.html', is_first_user=is_first_user)
         
         new_user = User(username=username)
         new_user.set_password(password)
+        
+        if is_first_user:
+            new_user.role = 'super_admin'
+        
         db.session.add(new_user)
         db.session.commit()
-        flash('Registration successful. Please log in.', 'success')
+        
+        if is_first_user:
+            flash('Super admin account created successfully. Please log in.', 'success')
+        else:
+            flash('Registration successful. Please log in.', 'success')
+            
         return redirect(url_for('login'))
-    return render_template('register.html')
+        
+    return render_template('register.html', is_first_user=is_first_user)
 
 @app.route('/logout')
 def logout():
@@ -113,43 +138,98 @@ def index():
 @login_required
 def setup_config():
     global bot_controller
-    if bot_controller.config:
+    if request.method == 'POST':
+        new_config_data = {}
+        for key, value in request.form.items():
+            section, option = key.split('_', 1)
+            if section not in new_config_data:
+                new_config_data[section] = {}
+            new_config_data[section][option] = value
+
+        bot_logger.debug(f"DEBUG: new_config_data from form: {new_config_data}")
+
+        current_config = DEFAULT_CONFIG
+        
+        for section, settings in new_config_data.items():
+            if section in current_config:
+                for key, value in settings.items():
+                    if value == 'on':
+                        current_config[section][key] = 'True'
+                    elif key in DEFAULT_CONFIG.get(section, {}) and DEFAULT_CONFIG[section][key].lower() in ['true', 'false']:
+                        current_config[section][key] = 'False'
+                    else:
+                        if section == 'Connection' and key == 'host' and value.endswith('localhost') and value != 'localhost':
+                            current_config[section][key] = value.rstrip('localhost')
+                        else:
+                            current_config[section][key] = value
+            else:
+                current_config[section] = settings
+
+        bot_logger.debug(f"DEBUG: current_config before save in setup_config: {current_config}")
+        save_config(current_config)
+        bot_controller.config = current_config
+        flash('Configuration saved successfully.', 'success')
+        return redirect(url_for('index'))
+
+    if bot_controller.config and bot_controller.config.get('Connection', {}).get('host'):
         flash('Configuration already exists. Redirected to main page.', 'info')
         return redirect(url_for('index'))
 
-    if request.method == 'POST':
-        # This part will be handled by the existing /config POST route
-        # For now, just redirect to /config and let it handle the save
-        # In a real scenario, you might want to process the form data here
-        # and then call save_config directly or redirect with data.
-        # For simplicity, we'll assume the /config route can handle the POST from this form.
-        # We'll need to adjust the /config route to accept form data if it's currently expecting JSON.
-        pass # This will be filled in later
     return render_template('setup_config.html', default_config=DEFAULT_CONFIG)
 
 @app.route('/status', methods=['GET'])
 @login_required
 def get_status():
-    if bot_controller and bot_controller.bot_instance:
-        status = {
-            "running": bot_controller.bot_thread.is_alive() if bot_controller.bot_thread else False,
-            "logged_in": bot_controller.bot_instance._logged_in if bot_controller.bot_instance else False,
-            "in_channel": bot_controller.bot_instance._in_channel if bot_controller.bot_instance else False,
-            "features": {
-                "announce_join_leave": bot_controller.bot_instance.announce_join_leave,
-                "allow_channel_messages": bot_controller.bot_instance.allow_channel_messages,
-                "allow_broadcast": bot_controller.bot_instance.allow_broadcast,
-                "allow_gemini_pm": bot_controller.bot_instance.allow_gemini_pm,
-                "allow_gemini_channel": bot_controller.bot_instance.allow_gemini_channel,
-                "filter_enabled": bot_controller.bot_instance.filter_enabled,
-                "bot_locked": bot_controller.bot_instance.bot_locked,
-                "context_history_enabled": bot_controller.bot_instance.context_history_enabled,
-                "debug_logging_enabled": bot_controller.bot_instance.debug_logging_enabled,
-            },
-            "config": bot_controller.config # Expose current config (be careful with sensitive info)
-        }
-    else:
-        status = {"running": False}
+    global bot_controller
+    status = {"running": False} # Default status
+
+    try:
+        if bot_controller:
+            bot_logger.debug("get_status: bot_controller exists.")
+            if bot_controller.bot_instance:
+                bot_logger.debug("get_status: bot_controller.bot_instance exists.")
+                status["running"] = bot_controller.bot_thread.is_alive() if bot_controller.bot_thread else False
+                bot_logger.debug(f"get_status: running={status['running']}")
+                
+                status["logged_in"] = bot_controller.bot_instance._logged_in
+                bot_logger.debug(f"get_status: logged_in={status['logged_in']}")
+                
+                status["in_channel"] = bot_controller.bot_instance._in_channel
+                bot_logger.debug(f"get_status: in_channel={status['in_channel']}")
+
+                status["features"] = {
+                    "announce_join_leave": bot_controller.bot_instance.announce_join_leave,
+                    "allow_channel_messages": bot_controller.bot_instance.allow_channel_messages,
+                    "allow_broadcast": bot_controller.bot_instance.allow_broadcast,
+                    "allow_gemini_pm": bot_controller.bot_instance.allow_gemini_pm,
+                    "allow_gemini_channel": bot_controller.bot_instance.allow_gemini_channel,
+                    "filter_enabled": bot_controller.bot_instance.filter_enabled,
+                    "bot_locked": bot_controller.bot_instance.bot_locked,
+                    "context_history_enabled": bot_controller.bot_instance.context_history_enabled,
+                    "debug_logging_enabled": bot_controller.bot_instance.debug_logging_enabled,
+                }
+                bot_logger.debug(f"get_status: features={status['features']}")
+                
+                # Ensure config is JSON serializable
+                if bot_controller.config:
+                    try:
+                        json.dumps(bot_controller.config) # Test if serializable
+                        status["config"] = bot_controller.config
+                        bot_logger.debug("get_status: config is JSON serializable.")
+                    except TypeError as e:
+                        bot_logger.error(f"get_status: Config is not JSON serializable: {e}", exc_info=True)
+                        status["config"] = {"error": "Config not serializable"}
+                else:
+                    status["config"] = {}
+                    bot_logger.debug("get_status: bot_controller.config is None.")
+            else:
+                bot_logger.debug("get_status: bot_controller.bot_instance is None.")
+        else:
+            bot_logger.debug("get_status: bot_controller is None.")
+    except Exception as e:
+        bot_logger.error(f"Error in get_status: {e}", exc_info=True)
+        status = {"running": False, "error": str(e)}
+    
     return jsonify(status)
 
 @app.route('/start', methods=['POST'])
@@ -162,7 +242,6 @@ def start_bot():
     if bot_controller.bot_thread and bot_controller.bot_thread.is_alive():
         return jsonify({"status": "info", "message": "Bot is already running."})
     
-    # Ensure config is loaded before starting
     if not bot_controller.config:
         bot_controller.config = load_config()
         if not bot_controller.config:
@@ -182,7 +261,6 @@ def stop_bot():
     if bot_controller and bot_controller.bot_thread and bot_controller.bot_thread.is_alive():
         bot_logger.info("Web UI: Stop request received.")
         bot_controller.request_shutdown()
-        # Memberi waktu bot untuk shutdown gracefully
         bot_controller.bot_thread.join(5) 
         if not bot_controller.bot_thread.is_alive():
             bot_logger.info("Web UI: Bot thread successfully stopped.")
@@ -247,14 +325,13 @@ def toggle_feature(feature_name):
 
 @app.route('/config', methods=['GET', 'POST'])
 @login_required
+@super_admin_required
 def manage_config():
     global bot_controller
     if request.method == 'GET':
         if bot_controller and bot_controller.config:
-            # Return a copy to prevent direct modification
             return jsonify(bot_controller.config)
         else:
-            # Try to load config if controller not yet initialized
             config = load_config()
             if config:
                 return jsonify(config)
@@ -271,51 +348,49 @@ def manage_config():
                 new_config_data[section] = {}
             new_config_data[section][option] = value
 
-        # Validate and merge new config with existing or default config
+        bot_logger.debug(f"DEBUG: new_config_data from JSON in manage_config: {new_config_data}")
+
         current_config = bot_controller.config if bot_controller.config else load_config() or DEFAULT_CONFIG
+        bot_logger.debug(f"DEBUG: current_config before merge in manage_config: {current_config}")
         
-        # Simple merge for now, more robust validation can be added
         for section, settings in new_config_data.items():
             if section in current_config:
                 for key, value in settings.items():
-                    # Handle boolean strings from form checkboxes
-                    if value == 'on': # Checkbox value when checked
+                    if value == 'on':
                         current_config[section][key] = 'True'
                     elif key in DEFAULT_CONFIG.get(section, {}) and DEFAULT_CONFIG[section][key].lower() in ['true', 'false']:
-                        # If it's a boolean field and not 'on', it means it was unchecked
                         current_config[section][key] = 'False'
                     else:
-                        current_config[section][key] = value
+                        if section == 'Connection' and key == 'host' and value.endswith('localhost') and value != 'localhost':
+                            current_config[section][key] = value.rstrip('localhost')
+                        else:
+                            current_config[section][key] = value
             else:
-                current_config[section] = settings # Add new section if it doesn't exist
+                current_config[section] = settings
+
+        bot_logger.debug(f"DEBUG: current_config after merge in manage_config: {current_config}")
 
         save_config(current_config)
-        bot_controller.config = current_config # Update controller's config
+        bot_controller.config = current_config
         
-        # If bot is running, restart it for config changes to take effect
         if bot_controller.bot_thread and bot_controller.bot_thread.is_alive():
             bot_logger.info("Bot is running, initiating restart to apply new configuration.")
             bot_controller.request_restart()
-            # Give some time for the bot to restart
-            # bot_controller.bot_thread.join(10) 
             if bot_controller.bot_thread.is_alive():
-                flash('Configuration updated and bot restarted successfully.', 'success')
+                return jsonify({"status": "success", "message": 'Configuration updated and bot restarted successfully.'})
             else:
-                flash('Configuration updated. Bot restart initiated, but status is unclear.', 'warning')
+                return jsonify({"status": "warning", "message": 'Configuration updated. Bot restart initiated, but status is unclear.'})
         else:
-            flash('Configuration updated.', 'success')
-        
-        return redirect(url_for('index'))
+            return jsonify({"status": "success", "message": 'Configuration updated.'})
 
 @app.route('/logs', methods=['GET'])
 @login_required
 def get_logs():
     log_file_path = os.path.join(os.getcwd(), 'bot.log')
     if os.path.exists(log_file_path):
-        limit = request.args.get('limit', type=int, default=500) # Default to 500 lines
+        limit = request.args.get('limit', type=int, default=500)
         try:
             with open(log_file_path, 'r', encoding='utf-8') as f:
-                # Read lines in reverse to get the last 'limit' lines efficiently
                 lines = f.readlines()
                 logs = "".join(lines[-limit:])
             return logs, 200, {'Content-Type': 'text/plain'}
@@ -328,14 +403,16 @@ def get_logs():
 @login_required
 def get_users():
     users = User.query.all()
-    return jsonify([{"id": user.id, "username": user.username} for user in users])
+    return jsonify([{"id": user.id, "username": user.username, "role": user.role} for user in users])
 
 @app.route('/users', methods=['POST'])
 @login_required
+@super_admin_required
 def add_user():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+    role = data.get('role', 'admin') # Default to 'admin' if not provided
 
     if not username or not password:
         return jsonify({"status": "error", "message": "Username and password are required."}), 400
@@ -343,14 +420,15 @@ def add_user():
     if User.query.filter_by(username=username).first():
         return jsonify({"status": "error", "message": "Username already exists."}), 400
 
-    new_user = User(username=username)
+    new_user = User(username=username, role=role)
     new_user.set_password(password)
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({"status": "success", "message": "User added successfully.", "user": {"id": new_user.id, "username": new_user.username}}), 201
+    return jsonify({"status": "success", "message": "User added successfully.", "user": {"id": new_user.id, "username": new_user.username, "role": new_user.role}}), 201
 
 @app.route('/users/<int:user_id>', methods=['PUT'])
 @login_required
+@super_admin_required
 def update_user(user_id):
     user = User.query.get_or_404(user_id)
     data = request.get_json()
@@ -364,6 +442,7 @@ def update_user(user_id):
 
 @app.route('/users/<int:user_id>', methods=['DELETE'])
 @login_required
+@super_admin_required
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     if user.username == session.get('username'):

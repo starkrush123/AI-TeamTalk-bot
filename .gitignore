@@ -5,4 +5,11 @@ __pycache__/
 .env
 venv/
 *.db
-config.json
+config.json.env 
+aditional.txt
+instance/
+*.pyc
+dist/
+build/
+.vscode/
+.idea/

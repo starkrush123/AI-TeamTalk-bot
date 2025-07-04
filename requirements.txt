@@ -2,4 +2,4 @@ wxPython
 google-generativeai
 requests
 SQLAlchemy
-Flask-SQLAlchemy
+Flask-SQLAlchemypython-dotenv 

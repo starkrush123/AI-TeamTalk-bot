@@ -15,12 +15,26 @@ const confirmPasswordInput = document.getElementById('confirmPassword');
 const addUserModalElement = document.getElementById('addUserModal');
 const addUserModal = new bootstrap.Modal(addUserModalElement);
 
-// Autofocus for Add User Modal
+async function fetchConfig() {
+    try {
+        const response = await fetch('/config');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const config = await response.json();
+        currentConfig = config; // Update global config
+        renderConfigForm(currentConfig);
+    } catch (error) {
+        console.error("Error fetching config:", error);
+        showFlashMessage(`Error loading configuration: ${error.message}`, 'danger');
+    }
+}
+
 addUserModalElement.addEventListener('shown.bs.modal', () => {
     newUsernameInput.focus();
 });
 
-let currentConfig = {}; // To store the fetched config for editing
+let currentConfig = {};
 
 const featureMap = {
     "announce_join_leave": "jcl",
@@ -34,7 +48,6 @@ const featureMap = {
     "debug_logging_enabled": "debug_logging"
 };
 
-// Function to display flash messages
 function showFlashMessage(message, category) {
     const alertContainer = document.createElement('div');
     alertContainer.className = `alert alert-${category} alert-dismissible fade show mt-3`;
@@ -44,7 +57,7 @@ function showFlashMessage(message, category) {
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
     document.querySelector('.container').prepend(alertContainer);
-    setTimeout(() => alertContainer.remove(), 5000); // Remove after 5 seconds
+    setTimeout(() => alertContainer.remove(), 5000);
 }
 
 async function fetchStatus() {
@@ -57,61 +70,77 @@ async function fetchStatus() {
         startButton.disabled = true;
         stopButton.disabled = false;
         restartButton.style.display = 'inline-block'; // Show restart button
+
+        // Update features when bot is running
+        const existingFeatures = new Set();
+        if (data.features) {
+            for (const fullKey in data.features) {
+                const shortKey = featureMap[fullKey] || fullKey; // Use short key if available
+                const isEnabled = data.features[fullKey];
+                const inputId = `feature-${shortKey}`;
+                existingFeatures.add(inputId);
+
+                let checkbox = document.getElementById(inputId);
+                if (!checkbox) {
+                    // Feature does not exist, create it
+                    const colDiv = document.createElement('div');
+                    colDiv.className = 'col';
+                    colDiv.innerHTML = `
+                        <div class="form-check form-switch feature-card">
+                            <input class="form-check-input" type="checkbox" role="switch" id="${inputId}">
+                            <label class="form-check-label" for="${inputId}">${fullKey.replace(/_/g, ' ').toUpperCase()}</label>
+                        </div>
+                    `;
+                    featureListDiv.appendChild(colDiv);
+                    checkbox = document.getElementById(inputId);
+                    if (checkbox) {
+                        checkbox.addEventListener('change', async (event) => {
+                            const toggleResponse = await fetch(`/toggle_feature/${shortKey}`, {
+                                method: 'POST',
+                            });
+                            const toggleData = await toggleResponse.json();
+                            if (toggleData.status === 'success') {
+                                console.log(toggleData.message);
+                                fetchStatus(); // Refresh status to show updated state
+                            } else {
+                                alert(`Error toggling feature: ${toggleData.message}`);
+                                event.target.checked = !event.target.checked; // Revert checkbox state
+                            }
+                        });
+                    }
+                }
+
+                // Update existing checkbox properties
+                if (checkbox) {
+                    checkbox.checked = isEnabled;
+                    checkbox.disabled = !data.running;
+                }
+            }
+        }
+
+        // Remove features that no longer exist in the data
+        Array.from(featureListDiv.children).forEach(colDiv => {
+            const checkbox = colDiv.querySelector('input[type="checkbox"]');
+            if (checkbox && !existingFeatures.has(checkbox.id)) {
+                colDiv.remove();
+            }
+        });
+        // Remove the "Bot is stopped" message if it exists
+        const stoppedMessage = featureListDiv.querySelector('.text-muted');
+        if (stoppedMessage) {
+            stoppedMessage.remove();
+        }
+
     } else {
         botStatusSpan.textContent = 'Stopped';
         statusIndicator.className = 'status-indicator stopped';
         startButton.disabled = false;
         stopButton.disabled = true;
         restartButton.style.display = 'none'; // Hide restart button
-    }
 
-    // Update features
-    featureListDiv.innerHTML = '';
-    if (data.features) {
-        for (const fullKey in data.features) {
-            const shortKey = featureMap[fullKey] || fullKey; // Use short key if available
-            const isEnabled = data.features[fullKey];
-            const colDiv = document.createElement('div');
-            colDiv.className = 'col';
-            colDiv.innerHTML = `
-                <div class="form-check form-switch feature-card">
-                    <input class="form-check-input" type="checkbox" role="switch" id="feature-${shortKey}" ${isEnabled ? 'checked' : ''} ${!data.running ? 'disabled' : ''}>
-                    <label class="form-check-label" for="feature-${shortKey}">${fullKey.replace(/_/g, ' ').toUpperCase()}</label>
-                </div>
-            `;
-            featureListDiv.appendChild(colDiv);
-
-            const checkbox = colDiv.querySelector(`#feature-${shortKey}`);
-            if (checkbox) {
-                checkbox.addEventListener('change', async (event) => {
-                    const toggleResponse = await fetch(`/toggle_feature/${shortKey}`, {
-                        method: 'POST',
-                    });
-                    const toggleData = await toggleResponse.json();
-                    if (toggleData.status === 'success') {
-                        console.log(toggleData.message);
-                        fetchStatus(); // Refresh status to show updated state
-                    } else {
-                        alert(`Error toggling feature: ${toggleData.message}`);
-                        event.target.checked = !event.target.checked; // Revert checkbox state
-                    }
-                });
-            }
-        }
-    }
-
-    // Update config editor
-    if (data.config) {
-        currentConfig = data.config;
-        renderConfigForm(currentConfig);
-    } else {
-        // If bot not running, try to fetch config directly
-        const configResponse = await fetch('/config');
-        if (configResponse.ok) {
-            currentConfig = await configResponse.json();
-            renderConfigForm(currentConfig);
-        } else {
-            configAccordion.innerHTML = '<p class="text-danger">Failed to load configuration.</p>';
+        // Display message only if no features are present
+        if (featureListDiv.children.length === 0) {
+            featureListDiv.innerHTML = '<p class="text-muted">Bot is stopped and features are not displayed.</p>';
         }
     }
 }
@@ -121,6 +150,9 @@ function renderConfigForm(config) {
     let accordionIdCounter = 0;
 
     for (const section in config) {
+        if (section === 'WebUI') {
+            continue; // Skip rendering the WebUI section
+        }
         const sectionId = `collapse-${accordionIdCounter++}`;
         const sectionHeaderId = `heading-${sectionId}`;
         const isConnectionSection = section === 'Connection';
@@ -209,32 +241,45 @@ const MAX_LOG_LINES = 500; // Batasi jumlah baris log yang ditampilkan
 async function fetchLogs() {
     const response = await fetch('/logs?limit=500'); // Ambil 500 baris terakhir dari server
     const newLogsText = await response.text();
-    const newLines = newLogsText.split(/\r?\n/);
+    const newLines = newLogsText.split(/\r?\n/).filter(line => line.trim() !== '');
 
-    // Filter out empty lines that might result from split
-    const filteredNewLines = newLines.filter(line => line.trim() !== '');
-
-    // Tambahkan hanya baris baru yang belum ada
-    const lastKnownLog = logLines.length > 0 ? logLines[logLines.length - 1] : '';
-    let startIndex = 0;
-    if (lastKnownLog) {
-        for (let i = 0; i < filteredNewLines.length; i++) {
-            if (filteredNewLines[i].includes(lastKnownLog)) { // Cek apakah baris terakhir sudah ada
-                startIndex = i + 1;
+    // Find new lines to append
+    let linesToAppend = [];
+    if (logLines.length === 0) {
+        linesToAppend = newLines;
+    } else {
+        const lastKnownLog = logLines[logLines.length - 1];
+        let found = false;
+        for (let i = 0; i < newLines.length; i++) {
+            if (newLines[i].includes(lastKnownLog)) {
+                found = true;
+                linesToAppend = newLines.slice(i + 1);
                 break;
             }
         }
-    }
-    
-    const logsToAppend = filteredNewLines.slice(startIndex);
-    logLines = logLines.concat(logsToAppend);
-
-    // Batasi jumlah baris log
-    if (logLines.length > MAX_LOG_LINES) {
-        logLines = logLines.slice(logLines.length - MAX_LOG_LINES);
+        if (!found) { // If last known log not found, assume full refresh
+            linesToAppend = newLines;
+            logContainer.innerHTML = ''; // Clear existing logs
+            logLines = [];
+        }
     }
 
-    logContainer.textContent = logLines.join('\n');
+    // Append new lines to the DOM and internal array
+    const fragment = document.createDocumentFragment();
+    linesToAppend.forEach(line => {
+        const logEntry = document.createElement('div');
+        logEntry.textContent = line;
+        fragment.appendChild(logEntry);
+        logLines.push(line);
+    });
+    logContainer.appendChild(fragment);
+
+    // Trim old lines from DOM and internal array if over limit
+    while (logLines.length > MAX_LOG_LINES) {
+        logContainer.removeChild(logContainer.firstChild);
+        logLines.shift();
+    }
+
     logContainer.scrollTop = logContainer.scrollHeight; // Scroll ke bawah
 }
 
@@ -246,8 +291,9 @@ async function fetchUsers() {
         const row = userListTableBody.insertRow();
         row.innerHTML = `
             <td>${user.username}</td>
+            <td>${user.role}</td>
             <td>
-                <button class="btn btn-danger btn-sm delete-user-btn" data-user-id="${user.id}">Delete</n                <button class="btn btn-danger btn-sm delete-user-btn" data-user-id="${user.id}">Delete</button>
+                <button class="btn btn-danger btn-sm delete-user-btn" data-user-id="${user.id}">Delete</button>
             </td>
         `;
     });
@@ -277,6 +323,7 @@ addUserForm.addEventListener('submit', async (event) => {
     const username = newUsernameInput.value;
     const password = newPasswordInput.value;
     const confirmPassword = confirmPasswordInput.value;
+    const role = addUserForm.querySelector('input[name="role"]:checked').value;
 
     if (password !== confirmPassword) {
         showFlashMessage('Passwords do not match.', 'danger');
@@ -288,7 +335,7 @@ addUserForm.addEventListener('submit', async (event) => {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, role }),
     });
     const data = await response.json();
     if (data.status === 'success') {
@@ -351,9 +398,7 @@ myTabEl.addEventListener('shown.bs.tab', event => {
         fetchStatus();
     } else if (activeTabId === 'settings-tab') {
         // Config is already fetched by fetchStatus, but ensure it's rendered
-        if (Object.keys(currentConfig).length === 0) {
-            fetchStatus(); // Re-fetch if somehow empty
-        }
+        fetchConfig();
     } else if (activeTabId === 'user-management-tab') {
         fetchUsers();
     } else if (activeTabId === 'logs-tab') {
@@ -363,15 +408,14 @@ myTabEl.addEventListener('shown.bs.tab', event => {
 
 // Initial fetch for the active tab (Status tab is active by default)
 fetchStatus();
-fetchLogs(); // Always fetch logs initially, as it's a common need
 
-// Refresh status every 5 seconds
+// Refresh status every 15 seconds
 setInterval(fetchStatus, 5000);
 
-// Refresh logs every 5 seconds, regardless of tab, but only if logs tab is active
+// Refresh logs every 15 seconds, regardless of tab, but only if logs tab is active
 setInterval(() => {
     const logsTab = document.getElementById('logs-tab');
     if (logsTab && logsTab.classList.contains('active')) {
         fetchLogs();
     }
-}, 5000);
+}, 15000);
