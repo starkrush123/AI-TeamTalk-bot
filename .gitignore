@@ -1,0 +1,8 @@
+*.log
+*.config
+*.ini
+__pycache__/
+.env
+venv/
+gemini.md
+
