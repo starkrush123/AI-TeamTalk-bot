@@ -1,6 +1,7 @@
 
 import logging
 from TeamTalk5 import ttstr
+import TeamTalk5
 
 def handle_weather(bot, msg_from_id, channel_id, args_str, msg_type, **kwargs):
     location = args_str.strip()
@@ -9,7 +10,7 @@ def handle_weather(bot, msg_from_id, channel_id, args_str, msg_type, **kwargs):
     else:
         reply = bot.weather_service.get_weather(location)
     
-    if msg_type == bot.TextMsgType.MSGTYPE_USER: # PM command
+    if msg_type == TeamTalk5.TextMsgType.MSGTYPE_USER: # PM command
         bot._send_pm(msg_from_id, reply)
     else: # Channel command
         bot._send_channel_message(channel_id, reply)
