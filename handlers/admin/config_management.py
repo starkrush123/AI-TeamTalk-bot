@@ -65,26 +65,21 @@ def handle_set_context_retention(bot, msg_from_id, args_str, **kwargs):
         logging.error(f"Error setting context retention: {e}")
         bot._send_pm(msg_from_id, f"[Error] Failed to set context retention: {e}")
 
-def handle_filter_management(bot, msg_from_id, args_str, **kwargs):
-    parts = args_str.split(maxsplit=1)
-    sub_command = parts[0].lower() if parts else "list"
-    word = parts[1].strip().lower() if len(parts) > 1 else ""
+def handle_add_word(bot, msg_from_id, args_str, **kwargs):
+    word = args_str.strip().lower()
+    if not word:
+        bot._send_pm(msg_from_id, "Usage: addword <word>"); return
+    bot.filtered_words.add(word)
+    bot.filter_enabled = True
+    bot._save_runtime_config()
+    bot._send_pm(msg_from_id, f"Word '{word}' added to filter. Filter enabled.")
 
-    if sub_command == "add":
-        if not word: bot._send_pm(msg_from_id, "Usage: !filter add <word>"); return
-        bot.filtered_words.add(word)
-        bot.filter_enabled = True
-        bot._save_runtime_config()
-        bot._send_pm(msg_from_id, f"Word '{word}' added to filter. Filter enabled.")
-    elif sub_command == "remove":
-        if not word: bot._send_pm(msg_from_id, "Usage: !filter remove <word>"); return
-        bot.filtered_words.discard(word)
-        if not bot.filtered_words: bot.filter_enabled = False
-        bot._save_runtime_config()
-        bot._send_pm(msg_from_id, f"Word '{word}' removed from filter.")
-    elif sub_command == "list":
-        status = "ENABLED" if bot.filter_enabled else "DISABLED"
-        word_list = ", ".join(sorted(list(bot.filtered_words))) or "Empty"
-        bot._send_pm(msg_from_id, f"Filtered Words ({status}): {word_list}")
-    else:
-        bot._send_pm(msg_from_id, "Usage: !filter <add|remove|list> [word]")
+def handle_del_word(bot, msg_from_id, args_str, **kwargs):
+    word = args_str.strip().lower()
+    if not word:
+        bot._send_pm(msg_from_id, "Usage: delword <word>"); return
+    bot.filtered_words.discard(word)
+    if not bot.filtered_words:
+        bot.filter_enabled = False
+    bot._save_runtime_config()
+    bot._send_pm(msg_from_id, f"Word '{word}' removed from filter.")

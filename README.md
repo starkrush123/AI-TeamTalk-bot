@@ -129,9 +129,9 @@ These commands can be used in a private message (PM) to the bot. Some are also a
 - `w <location>`: Gets the current weather for a specific location.
 - `info`: Displays information about the bot.
 - `whoami`: Shows your username and user ID.
-- `!poll <question>; <option1>; <option2>; ...`: Creates a new poll.
-- `!vote <poll_id> <option_id>`: Casts a vote in an active poll.
-- `!results <poll_id>`: Displays the results of a poll.
+- `poll <question>; <option1>; <option2>; ...`: Creates a new poll.
+- `vote <poll_id> <option_id>`: Casts a vote in an active poll.
+- `results <poll_id>`: Displays the results of a poll.
 - `admins`: Lists all currently online bot admins.
 - `users`: Lists all users on the server.
 - `uptime`: Shows the bot's current uptime.
@@ -151,24 +151,23 @@ These commands can only be used by users registered as admins.
 - `block <command>`: Blocks a command from being used.
 - `unblock <command>`: Unblocks a command.
 - `blocked`: Lists all blocked commands.
-- `!setnick <new_nickname>`: Changes the bot's nickname.
-- `!setstatus <new_message>`: Changes the bot's status message.
-- `!savecfg`: Saves the current configuration to `config.ini`.
-- `!addword <word>`: Adds a word to the word filter.
-- `!delword <word>`: Removes a word from the word filter.
-- `!kick <nickname>`: Kicks a user from the channel.
-- `!ban <nickname>`: Bans a user from the channel.
-- `!join <channel_path>`: Makes the bot join another channel.
-- `!tfilter`: Toggles the word filter ON/OFF.
-- `!tjcl`: Toggles join/leave announcements ON/OFF.
-- `!tchanmsg`: Allows/disallows the bot from sending messages in the channel.
-- `!tbroadcast`: Allows/disallows the bot from sending broadcasts.
-- `!tgeminipm`: Toggles the AI in PMs ON/OFF.
-- `!tgeminichan`: Toggles the AI in channels ON/OFF.
-- `!tgmmode`: Toggles the welcome message mode (template/gemini).
-- `!setmodel <model_name>`: Sets the Gemini AI model to use.
-- `!models`: Lists all available Gemini models.
-- `!setinstructions <instructions>`: Sets the permanent system instructions for the AI.
+- `cn <new_nickname>`: Changes the bot's nickname.
+- `cs <new_message>`: Changes the bot's status message.
+- `addword <word>`: Adds a word to the word filter.
+- `delword <word>`: Removes a word from the word filter.
+- `kick <nickname>`: Kicks a user from the channel.
+- `ban <nickname>`: Bans a user from the channel.
+- `join <channel_path>`: Makes the bot join another channel.
+- `tfilter`: Toggles the word filter ON/OFF.
+- `tjcl`: Toggles join/leave announcements ON/OFF.
+- `tchanmsg`: Allows/disallows the bot from sending messages in the channel.
+- `tbroadcast`: Allows/disallows the bot from sending broadcasts.
+- `tgeminipm`: Toggles the AI in PMs ON/OFF.
+- `tgeminichan`: Toggles the AI in channels ON/OFF.
+- `tgmmode`: Toggles the welcome message mode (template/gemini).
+- `sgm <model_name>`: Sets the Gemini AI model to use.
+- `lgm`: Lists all available Gemini models.
+- `setinstructions <instructions>`: Sets the permanent system instructions for the AI.
 
 ## License
 

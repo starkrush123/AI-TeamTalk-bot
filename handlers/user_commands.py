@@ -26,24 +26,25 @@ def handle_help(bot, msg_from_id, **kwargs):
     help_lines.append("- bm <msg>: Send a broadcast message.")
     help_lines.append("- c <q>: Ask Gemini AI via PM.")
     help_lines.append("- /c <q>: Ask Gemini AI in bot's channel.")
-    help_lines.append("- !poll \"Q\" \"A\" \"B\": Create a poll.")
-    help_lines.append("- !vote <id> <num>: Vote in a poll.")
-    help_lines.append("- !results <id>: Show poll results.")
+    help_lines.append("- poll \"Q\" \"A\" \"B\": Create a poll.")
+    help_lines.append("- vote <id> <num>: Vote in a poll.")
+    help_lines.append("- results <id>: Show poll results.")
 
     if is_admin:
         help_lines.append("\n--- Admin Commands ---")
         help_lines.append("- gapi: Set Gemini API key.")
         help_lines.append("- list_gemini_models / lgm: List available Gemini models.")
         help_lines.append("- set_gemini_model <model_name> / sgm <model_name>: Set the active Gemini model.")
-        help_lines.append("- !filter: Manage word filter.")
+        help_lines.append("- addword <word>: Adds a word to the word filter.")
+        help_lines.append("- delword <word>: Removes a word from the word filter.")
         help_lines.append("- set_context_retention: Set context history retention.")
         help_lines.append("- jcl: Toggle join/leave announcements.")
         help_lines.append("- tg_chanmsg: Toggle channel messages.")
         help_lines.append("- tg_broadcast: Toggle broadcast messages.")
         help_lines.append("- tg_gemini_pm: Toggle Gemini PM.")
         help_lines.append("- tg_gemini_chan: Toggle Gemini channel messages.")
-        help_lines.append("- !tgmmode: Toggle welcome message mode.")
-        help_lines.append("- !tfilter: Toggle filter.")
+        help_lines.append("- tgmmode: Toggle welcome message mode.")
+        help_lines.append("- tfilter: Toggle filter.")
         help_lines.append("- tg_context_history: Toggle context history.")
         help_lines.append("- tg_debug_logging: Toggle debug logging.")
         help_lines.append("- lock: Lock/unlock bot.")
@@ -154,9 +155,9 @@ COMMAND_MAP_PM = {
     # AI Commands
     "c": ai_commands.handle_pm_ai,
     # Poll Commands
-    "!poll": poll_commands.handle_poll_create,
-    "!vote": poll_commands.handle_vote,
-    "!results": poll_commands.handle_results,
+    "poll": poll_commands.handle_poll_create,
+    "vote": poll_commands.handle_vote,
+    "results": poll_commands.handle_results,
     "instruct": ai_instructions.handle_instruct_command,
 }
 
@@ -173,7 +174,8 @@ ADMIN_COMMANDS = {
     "lgm": config_management.handle_list_gemini_models,
     "set_gemini_model": config_management.handle_set_gemini_model,
     "sgm": config_management.handle_set_gemini_model,
-    "!filter": config_management.handle_filter_management,
+    "addword": config_management.handle_add_word,
+    "delword": config_management.handle_del_word,
     "set_context_retention": config_management.handle_set_context_retention,
     # Admin - Feature Toggles
     "jcl": feature_toggles.handle_toggle_jcl,
@@ -181,8 +183,8 @@ ADMIN_COMMANDS = {
     "tg_broadcast": feature_toggles.handle_toggle_broadcast,
     "tg_gemini_pm": feature_toggles.handle_toggle_gemini_pm,
     "tg_gemini_chan": feature_toggles.handle_toggle_gemini_chan,
-    "!tgmmode": feature_toggles.handle_toggle_welcome_mode,
-    "!tfilter": feature_toggles.handle_toggle_filter,
+    "tgmmode": feature_toggles.handle_toggle_welcome_mode,
+    "tfilter": feature_toggles.handle_toggle_filter,
     "tg_context_history": feature_toggles.handle_toggle_context_history,
     "tg_debug_logging": feature_toggles.handle_toggle_debug_logging,
     # Admin - User Management

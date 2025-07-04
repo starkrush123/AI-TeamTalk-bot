@@ -40,7 +40,7 @@ class MyTeamTalkBot(TeamTalk):
         self.announce_join_leave = self.allow_channel_messages = self.allow_broadcast = True
         self.allow_gemini_pm = self.allow_gemini_channel = True
         self.welcome_message_mode, self.filter_enabled = "template", bool(self.filtered_words)
-        self.UNBLOCKABLE_COMMANDS = {'h','q','rs','block','unblock','info','whoami','rights','lock','!tfilter','!tgmmode'}
+        self.UNBLOCKABLE_COMMANDS = {'h','q','rs','block','unblock','info','whoami','rights','lock','tfilter','tgmmode'}
 
         self.context_history_enabled = bot_conf.get('context_history_enabled', True)
         self.debug_logging_enabled = bot_conf.get('debug_logging_enabled', False) # New attribute for debug logging

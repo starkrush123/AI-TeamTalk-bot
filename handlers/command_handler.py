@@ -12,9 +12,9 @@ COMMAND_MAP_CHANNEL = {
     "h": user_commands.handle_help,
     "w": communication_commands.handle_weather,
     "c": ai_commands.handle_channel_ai,
-    "!poll": poll_commands.handle_poll_create,
-    "!vote": poll_commands.handle_vote,
-    "!results": poll_commands.handle_results,
+    "poll": poll_commands.handle_poll_create,
+    "vote": poll_commands.handle_vote,
+    "results": poll_commands.handle_results,
     "instruct": ai_instructions.handle_instruct_command,
 }
 
