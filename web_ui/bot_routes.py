@@ -51,6 +51,24 @@ def get_status():
                 else:
                     status["config"] = {}
                     bot_logger.debug("get_status: bot_controller.config is None.")
+
+                # Add TeamTalk server connection details
+                if status["running"] and bot_controller.bot_instance._logged_in:
+                    status["server_info"] = {
+                        "host": bot_controller.bot_instance.host,
+                        "tcp_port": bot_controller.bot_instance.tcp_port,
+                        "udp_port": bot_controller.bot_instance.udp_port,
+                        "nickname": bot_controller.bot_instance.nickname,
+                        "username": bot_controller.bot_instance.username,
+                        "target_channel_path": bot_controller.bot_instance.target_channel_path,
+                        "my_user_id": bot_controller.bot_instance._my_user_id,
+                        "my_rights": bot_controller.bot_instance.my_rights,
+                        "client_name": bot_controller.bot_instance.client_name,
+                        "status_message": bot_controller.bot_instance.status_message,
+                        "logged_in": bot_controller.bot_instance._logged_in,
+                        "in_channel": bot_controller.bot_instance._in_channel,
+                    }
+                    bot_logger.debug(f"get_status: server_info={status['server_info']}")
             else:
                 bot_logger.debug("get_status: bot_controller.bot_instance is None.")
         else:

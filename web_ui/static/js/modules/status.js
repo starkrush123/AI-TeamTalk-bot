@@ -1,5 +1,5 @@
 // web_ui/static/js/modules/status.js
-import { botStatusSpan, statusIndicator, startButton, stopButton, restartButton, featureListDiv } from './elements.js';
+import { botStatusSpan, statusIndicator, startButton, stopButton, restartButton, featureListDiv, serverInfoCard, serverInfoDisplay } from './elements.js';
 import { showFlashMessage } from './utils.js';
 
 const featureMap = {
@@ -24,6 +24,9 @@ export async function fetchStatus() {
         startButton.disabled = true;
         stopButton.disabled = false;
         restartButton.style.display = 'inline-block'; // Show restart button
+
+        // Clear any previous messages or features when bot is running
+        featureListDiv.innerHTML = '';
 
         // Update features when bot is running
         const existingFeatures = new Set();
@@ -72,29 +75,54 @@ export async function fetchStatus() {
             }
         }
 
-        // Remove features that no longer exist in the data
-        Array.from(featureListDiv.children).forEach(colDiv => {
-            const checkbox = colDiv.querySelector('input[type="checkbox"]');
-            if (checkbox && !existingFeatures.has(checkbox.id)) {
-                colDiv.remove();
+        // Show server info card
+        serverInfoCard.style.display = 'block';
+
+        // Populate server info
+        if (data.server_info) {
+            serverInfoDisplay.innerHTML = ''; // Clear previous content
+            const infoMap = {
+                "host": "Host",
+                "tcp_port": "TCP Port",
+                "udp_port": "UDP Port",
+                "nickname": "Nickname",
+                "username": "Username",
+                "target_channel_path": "Target Channel",
+                "my_user_id": "My User ID",
+                "my_rights": "My Rights",
+                "client_name": "Client Name",
+                "status_message": "Status Message",
+                "logged_in": "Logged In",
+                "in_channel": "In Channel"
+            };
+
+            for (const key in infoMap) {
+                if (data.server_info.hasOwnProperty(key)) {
+                    const value = data.server_info[key];
+                    const displayValue = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value;
+                    const colDiv = document.createElement('div');
+                    colDiv.className = 'col-md-6 col-12';
+                    colDiv.innerHTML = `<p><strong>${infoMap[key]}:</strong> ${displayValue}</p>`;
+                    serverInfoDisplay.appendChild(colDiv);
+                }
             }
-        });
-        // Remove the "Bot is stopped" message if it exists
-        const stoppedMessage = featureListDiv.querySelector('.text-muted');
-        if (stoppedMessage) {
-            stoppedMessage.remove();
         }
 
     } else {
-        botStatusSpan.textContent = 'Stopped';
-        statusIndicator.className = 'status-indicator stopped';
-        startButton.disabled = false;
-        stopButton.disabled = true;
-        restartButton.style.display = 'none'; // Hide restart button
-
-        // Display message only if no features are present
-        if (featureListDiv.children.length === 0) {
-            featureListDiv.innerHTML = '<p class="text-muted">Bot is stopped and features are not displayed.</p>';
-        }
+        updateUIForStoppedBot();
     }
+}
+
+export function updateUIForStoppedBot() {
+    botStatusSpan.textContent = 'Stopped';
+    statusIndicator.className = 'status-indicator stopped';
+    startButton.disabled = false;
+    stopButton.disabled = true;
+    restartButton.style.display = 'none'; // Hide restart button
+
+    // Hide server info card
+    serverInfoCard.style.display = 'none';
+
+    // Always display the stopped message and clear features
+    featureListDiv.innerHTML = '<p class="text-muted">Bot is stopped and features are not displayed.</p>';
 }

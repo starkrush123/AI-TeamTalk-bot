@@ -1,7 +1,7 @@
 // web_ui/static/js/modules/eventHandlers.js
 import { startButton, stopButton, restartButton, saveConfigButton, addUserModalElement } from './elements.js';
 import { showFlashMessage } from './utils.js';
-import { fetchStatus } from './status.js';
+import { fetchStatus, updateUIForStoppedBot } from './status.js';
 import { getConfigFromForm, fetchConfig } from './config.js';
 import { fetchUsers, setupAddUserForm } from './users.js';
 import { fetchLogs } from './logs.js';
@@ -22,7 +22,10 @@ export function setupEventListeners() {
         const response = await fetch('/stop', { method: 'POST' });
         const data = await response.json();
         showFlashMessage(data.message, data.status === 'success' ? 'success' : 'danger');
-        fetchStatus();
+        if (data.status === 'success') {
+            updateUIForStoppedBot(); // Update UI immediately
+        }
+        fetchStatus(); // Still fetch status to ensure full sync
     });
 
     restartButton.addEventListener('click', async () => {

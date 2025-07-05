@@ -15,3 +15,5 @@ export const newPasswordInput = document.getElementById('newPassword');
 export const confirmPasswordInput = document.getElementById('confirmPassword');
 export const addUserModalElement = document.getElementById('addUserModal');
 export const addUserModal = new bootstrap.Modal(addUserModalElement);
+export const serverInfoCard = document.getElementById('serverInfoCard');
+export const serverInfoDisplay = document.getElementById('serverInfoDisplay');

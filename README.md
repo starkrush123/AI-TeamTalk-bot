@@ -91,9 +91,6 @@ Here is a breakdown of the configuration sections:
 - `filtered_words`: A comma-separated list of words to filter.
 - `ai_system_instructions`: Default instructions for the AI.
 
-### `[WebUI]`
-- `secret_key`: A secret key for session management. This is generated automatically and should not be changed manually.
-
 ## Usage
 
 You can run the bot in GUI, Console, or Web UI mode.
@@ -138,24 +135,14 @@ python main_gui.py
 ```
 The GUI provides a real-time log, a list of toggleable features, and bot management controls.
 
-### Console Mode
+### Console Mode (Headless)
 
 Run `main.py` to start the bot in headless mode.
 
 ```bash
 python main.py
 ```
-In this mode, the bot will run in your console. You can manage it using the **Interactive Shell** (see below).
-
-## Interactive Shell (Console Mode Only)
-
-When running in console mode, you can use the following commands in the terminal to manage the bot:
-
-- `help`: Displays the help message.
-- `status`: Shows the current status of all toggleable features.
-- `toggle <feature>`: Toggles a feature ON or OFF. Available features: `jcl`, `chanmsg`, `broadcast`, `geminipm`, `geminichan`, `filter`, `lock`, `context_history`, `debug_logging`.
-- `set_retention <minutes>`: Sets the AI context history retention period.
-- `exit` / `quit`: Stops the bot and exits the application.
+In this mode, the bot will run in your console without an interactive shell. Management is primarily done via the Web UI.
 
 ## Command List
 

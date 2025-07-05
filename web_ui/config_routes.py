@@ -63,12 +63,7 @@ def manage_config():
                 return jsonify(config)
             return jsonify({"status": "error", "message": "Configuration not loaded."}), 404
     elif request.method == 'POST':
-        new_config_data = {}
-        for key, value in request.form.items():
-            section, option = key.split('_', 1)
-            if section not in new_config_data:
-                new_config_data[section] = {}
-            new_config_data[section][option] = value
+        new_config_data = request.get_json()
 
         bot_logger.debug(f"DEBUG: new_config_data from JSON in manage_config: {new_config_data}")
 
@@ -78,15 +73,7 @@ def manage_config():
         for section, settings in new_config_data.items():
             if section in current_config:
                 for key, value in settings.items():
-                    if value == 'on':
-                        current_config[section][key] = 'True'
-                    elif key in DEFAULT_CONFIG.get(section, {}) and DEFAULT_CONFIG[section][key].lower() in ['true', 'false']:
-                        current_config[section][key] = 'False'
-                    else:
-                        if section == 'Connection' and key == 'host' and value.endswith('localhost') and value != 'localhost':
-                            current_config[section][key] = value.rstrip('localhost')
-                        else:
-                            current_config[section][key] = value
+                    current_config[section][key] = value
             else:
                 current_config[section] = settings
 
@@ -98,9 +85,6 @@ def manage_config():
         if bot_controller.bot_thread and bot_controller.bot_thread.is_alive():
             bot_logger.info("Bot is running, initiating restart to apply new configuration.")
             bot_controller.request_restart()
-            if bot_controller.bot_thread.is_alive():
-                return jsonify({"status": "success", "message": 'Configuration updated and bot restarted successfully.'})
-            else:
-                return jsonify({"status": "warning", "message": 'Configuration updated. Bot restart initiated, but status is unclear.'})
+            return jsonify({"status": "success", "message": 'Configuration updated and bot restart initiated.'})
         else:
             return jsonify({"status": "success", "message": 'Configuration updated.'})

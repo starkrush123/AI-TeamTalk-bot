@@ -122,8 +122,8 @@ def save_config(structured_config_data):
         'weather_api_key': bot_data.get('weather_api_key', ''),
         'filtered_words': bot_data.get('filtered_words', ''),
         'context_history_retention_minutes': str(bot_data.get('context_history_retention_minutes', DEFAULT_CONFIG['Bot']['context_history_retention_minutes'])),
-        'context_history_enabled': str(bot_data.get('context_history_enabled', DEFAULT_CONFIG['Bot']['context_history_enabled'])),
-        'debug_logging_enabled': str(bot_data.get('debug_logging_enabled', DEFAULT_CONFIG['Bot']['debug_logging_enabled'])),
+        'context_history_enabled': str(bot_data.get('context_history_enabled', DEFAULT_CONFIG['Bot']['context_history_enabled'])).lower() == 'true',
+        'debug_logging_enabled': str(bot_data.get('debug_logging_enabled', DEFAULT_CONFIG['Bot']['debug_logging_enabled'])).lower() == 'true',
         'ai_system_instructions': bot_data.get('ai_system_instructions', DEFAULT_CONFIG['Bot']['ai_system_instructions'])
     }
     
