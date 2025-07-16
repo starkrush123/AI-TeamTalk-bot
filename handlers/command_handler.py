@@ -12,6 +12,8 @@ COMMAND_MAP_CHANNEL = {
     "h": user_commands.handle_help,
     "w": communication_commands.handle_weather,
     "c": ai_commands.handle_channel_ai,
+    "quote": communication_commands.handle_quote,
+    "event": communication_commands.handle_event,
     "poll": poll_commands.handle_poll_create,
     "vote": poll_commands.handle_vote,
     "results": poll_commands.handle_results,
@@ -51,8 +53,11 @@ def log_and_process(bot, msg_type, msg_from_id, msg_channel_id, sender_nick, ful
     command_word = parts[0].lower() if parts else ""
     args_str = parts[1] if len(parts) > 1 else ""
 
-    # For channel messages, remove leading '/' if present
-    if msg_type == TextMsgType.MSGTYPE_CHANNEL and command_word.startswith('/'):
+    if msg_type == TextMsgType.MSGTYPE_CHANNEL:
+        if not command_word.startswith('/'):
+            # If it's a channel message and doesn't start with '/', ignore it.
+            return
+        # If it starts with '/', strip it.
         command_word = command_word[1:]
 
     if not command_word: return

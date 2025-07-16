@@ -16,11 +16,15 @@ An advanced TeamTalk bot integrated with Google Gemini AI to provide intelligent
     - Integrated with **Google Gemini** to answer questions in PMs and channels.
     - **Context History**: Remembers previous conversations within a session for more relevant responses.
     - **System Instructions**: Ability to give the AI custom instructions to tailor its behavior.
+- **Hariku API Integration**:
+    - Hariku is a keyboard-focused daily companion designed to help you manage your time with intention and clarity. It integrates essential tools such as a personal journal, to-do lists, daily quotes, date insights, and updates into one seamless space. For more information, visit the [Hariku homepage](https://www.techlabs.lol/hariku/index.php). It is developed by **TechLabs**.
+    - The bot can retrieve random quotes and today's event information from the Hariku API.
+    - I am currently working on integrating Hariku's features more deeply with the Gemini AI. The goal is to allow users to interact with Hariku's services, especially for retrieving events, using natural language queries instead of rigid commands. This will make the bot more intuitive and user-friendly. However, this integration is still under development and facing some challenges.
 - **Command System**:
     - Separate commands for private messages (PM) and channel messages.
     - Admin access level for powerful commands.
     - Configurable and blockable command handling.
-- **Dual Operation Modes**:
+- **Multi Operation Modes**:
     - **GUI Mode**: A graphical user interface for logging, bot management, and feature toggling.
     - **Console Mode**: Headless operation with an interactive shell for management.
 - **Interactive Features**:
@@ -88,6 +92,7 @@ Here is a breakdown of the configuration sections:
 - `reconnect_delay_min`/`max`: The time range (in seconds) to wait before attempting to reconnect.
 - `gemini_api_key`: Your Google Gemini API key.
 - `weather_api_key`: Your API key for a weather service.
+- `hariku_api_key`: Your Hariku API key.
 - `filtered_words`: A comma-separated list of words to filter.
 - `ai_system_instructions`: Default instructions for the AI.
 
@@ -160,6 +165,8 @@ These commands can be used in a private message (PM) to the bot. Some are also a
 - `w <location>`: Gets the current weather (also available as `/w <location>` in channels).
 - `c <question>`: Asks the Gemini AI a question via PM.
 - `/c <question>`: Asks the Gemini AI a question in the bot's current channel (if enabled).
+- `quote`: Retrieves a random quote from the Hariku API.
+- `event`: Retrieves event information from the Hariku API.
 - `poll "Question" "Option A" "Option B" ...`: Creates a new poll.
 - `vote <poll_id> <option_number>`: Casts a vote in an active poll.
 - `results <poll_id>`: Displays the results of a poll.
@@ -181,6 +188,7 @@ These commands can only be used by users registered as admins in the bot's confi
 
 #### AI & Configuration
 - `gapi <api_key>`: Sets the Gemini API key.
+- `harikuapi <api_key>`: Sets the Hariku API key.
 - `list_gemini_models` / `lgm`: Lists available Gemini models.
 - `set_gemini_model <model_name>` / `sgm <model_name>`: Sets the active Gemini model.
 - `instruct <instructions>`: Sets the permanent system instructions for the AI.
@@ -200,7 +208,7 @@ These commands can only be used by users registered as admins in the bot's confi
 - `admins`: Lists all configured bot admins and their online status.
 - `kick <nickname>`: Kicks a user from the bot's current channel.
 - `ban <nickname>`: Bans a user from the server.
-- `unban <username>`: Unbans a user from the server.
+- `unban <username>`: Unban a user from the server.
 - `move <nickname> <channel_path>`: Moves a user to the specified channel.
 
 #### Communication & Channel

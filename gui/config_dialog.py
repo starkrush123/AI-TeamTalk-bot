@@ -14,7 +14,7 @@ class ConfigDialog(wx.Dialog):
         labels = [
             "Server Host:", "Server Port:", "Bot Username:", "Bot Password:",
             "Bot Nickname:", "Initial Status Msg:", "Admin Usernames (comma-sep):",
-            "Gemini API Key:", "Weather API Key (OpenWeatherMap):", "Reconnect Delay (min/max sec):",
+            "Gemini API Key:", "Weather API Key (OpenWeatherMap):", "Hariku API Key:", "Reconnect Delay (min/max sec):",
             "Context History Retention (minutes):",
             "Enable Debug Logging:"
         ]
@@ -25,7 +25,8 @@ class ConfigDialog(wx.Dialog):
             "server host:": "host", "server port:": "port", "bot username:": "username", "bot password:": "password",
             "bot nickname:": "nickname", "initial status msg:": "status_message",
             "admin usernames (comma-sep):": "admin_usernames", "gemini api key:": "gemini_api_key",
-            "weather api key (openweathermap):": "weather_api_key"
+            "weather api key (openweathermap)": "weather_api_key",
+            "hariku api key:": "hariku_api_key"
         }
 
         for i, label_text in enumerate(labels):

@@ -9,6 +9,7 @@ from config_manager import save_config
 from handlers import command_handler
 from services.gemini_service import GeminiService
 from services.weather_service import WeatherService
+from services.hariku_service import HarikuService
 from context_history_manager import ContextHistoryManager
 from logger_config import bot_logger # Import the named logger
 
@@ -58,6 +59,8 @@ class MyTeamTalkBot(TeamTalk):
             welcome_instructions=self.welcome_message_instructions
         )
         self.weather_service = WeatherService(bot_conf.get('weather_api_key'))
+        self.hariku_service = HarikuService(bot_conf.get('hariku_api_key'))
+        
         self.context_history_manager = ContextHistoryManager(
             retention_minutes=bot_conf.get('context_history_retention_minutes', 60),
             max_messages=bot_conf.get('context_history_max_messages', 20)
@@ -164,10 +167,11 @@ class MyTeamTalkBot(TeamTalk):
             return next((u for u in self.getServerUsers() if ttstr(u.szNickname).lower() == target_nick), None)
         except TeamTalkError as e:
             if e.errnum != ClientError.CMDERR_NOT_LOGGEDIN: self.logger.error(f"SDK error in _find_user_by_nick: {e}"); return None
-    def _save_runtime_config(self, save_gemini_key=False):
+    def _save_runtime_config(self, save_gemini_key=False, save_hariku_key=False):
         self._log_to_gui("Saving runtime config..."); self.config['Bot']['filtered_words'] = ','.join(sorted(list(self.filtered_words)))
         self.config['Connection']['nickname'] = ttstr(self.nickname); self.config['Bot']['status_message'] = ttstr(self.status_message)
         if save_gemini_key: self.config['Bot']['gemini_api_key'] = self.gemini_service.api_key
+        if save_hariku_key: self.config['Bot']['hariku_api_key'] = self.hariku_service.api_key
         save_config(self.config)
     def _mark_stopped_intentionally(self): self._intentional_stop = True
 

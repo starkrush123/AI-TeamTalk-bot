@@ -1,11 +1,8 @@
 import time
 import sys
-import os
 from TeamTalk5 import UserRight, TT_STRLEN, ttstr, LOADED_TT_LIB
 from utils import format_uptime
 
-from TeamTalk5 import UserRight, TT_STRLEN, ttstr
-from utils import format_uptime
 from . import ai_commands, poll_commands, communication_commands
 from .admin import bot_control, config_management, feature_toggles, user_management, channel_management, ai_instructions
 
@@ -25,6 +22,8 @@ def handle_help(bot, msg_from_id, **kwargs):
     help_lines.append("- ct <msg>: Send a message to bot's channel.")
     help_lines.append("- bm <msg>: Send a broadcast message.")
     help_lines.append("- c <q>: Ask Gemini AI via PM.")
+    help_lines.append("- quote [en|id] [id]: Get a random quote or a quote by ID.")
+    help_lines.append("- event [country_code] [YYYY-MM-DD|YYYY-MM|YYYY|query]: Get events for a specific week, month, year, or search by query. If no date/query, gets today's events.")
     help_lines.append("- /c <q>: Ask Gemini AI in bot's channel.")
     help_lines.append("- poll \"Q\" \"A\" \"B\": Create a poll.")
     help_lines.append("- vote <id> <num>: Vote in a poll.")
@@ -34,6 +33,7 @@ def handle_help(bot, msg_from_id, **kwargs):
         help_lines.append("\n--- Admin Commands ---")
         admin_commands_list = [
             "- gapi: Set Gemini API key.",
+            "- harikuapi: Set Hariku API key.",
             "- list_gemini_models / lgm: List available Gemini models.",
             "- set_gemini_model <model_name> / sgm <model_name>: Set the active Gemini model.",
             "- addword <word>: Adds a word to the word filter.",
@@ -87,20 +87,21 @@ def handle_info(bot, msg_from_id, **kwargs):
         if props:
             server_name = ttstr(props.szServerName)
             server_version = ttstr(props.szServerVersion)
-    except Exception: pass
+    except Exception:
+        pass
 
     info_lines = [
-        f"--- Bot Info ---",
+        "--- Bot Info ---",
         f"Name: {ttstr(bot.nickname)}",
         f"Uptime: {uptime_str}",
         f"Current Channel: {ttstr(bot.getChannelPath(bot.getMyChannelID())) if bot._in_channel else 'Not in channel'}",
         f"Target Channel: {ttstr(bot.target_channel_path)}",
         f"Locked: {'YES' if bot.bot_locked else 'NO'}",
-        f"--- System Info ---",
+        "--- System Info ---",
         f"Operating System: {sys.platform}",
         f"Python Version: {sys.version.split(' ')[0]}",
         f"TeamTalk Library: {LOADED_TT_LIB}",
-        f"--- Features ---",
+        "--- Features ---",
         f"Gemini AI: {gemini_status} (Model: {bot.gemini_service.get_current_model_name()})\n        AI System Instructions: {bot.ai_system_instructions if bot.ai_system_instructions else 'Not set'}",
         f"Announce Join/Leave: {'ON' if bot.announce_join_leave else 'OFF'}",
         f"Allow Channel Messages: {'ON' if bot.allow_channel_messages else 'OFF'}",
@@ -112,7 +113,7 @@ def handle_info(bot, msg_from_id, **kwargs):
         f"Debug Logging: {debug_logging_status}",
         f"Context History: {context_history_status}",
         f"Gemini API Key: {gemini_api_key_status}",
-        f"--- Server Info ---",
+        "--- Server Info ---",
         f"Name: {server_name} ({ttstr(bot.host)})",
         f"Version: {server_version}",
     ]
@@ -121,7 +122,8 @@ def handle_info(bot, msg_from_id, **kwargs):
 def handle_whoami(bot, msg_from_id, sender_nick, **kwargs):
     try:
         user = bot.getUser(msg_from_id)
-        if not user: raise ValueError("Could not get user info")
+        if not user:
+            raise ValueError("Could not get user info")
         admin_status = "Yes" if bot._is_admin(msg_from_id) else "No"
         bot._send_pm(msg_from_id, f"Nick: {sender_nick}\nID: {user.nUserID}\nUser: {ttstr(user.szUsername)}\nAdmin: {admin_status}")
     except Exception as e:
@@ -142,7 +144,9 @@ def handle_change_nick(bot, msg_from_id, args_str, **kwargs):
 
 def handle_change_status(bot, msg_from_id, args_str, **kwargs):
     new_status = ttstr(args_str)
-    if len(new_status) > TT_STRLEN: bot._send_pm(msg_from_id, "Error: Status too long."); return
+    if len(new_status) > TT_STRLEN:
+        bot._send_pm(msg_from_id, "Error: Status too long.")
+        return
     bot.doChangeStatus(0, new_status)
     bot._send_pm(msg_from_id, "Status change requested.")
 
@@ -157,6 +161,8 @@ COMMAND_MAP_PM = {
     "cs": handle_change_status,
     # Communication Commands
     "w": communication_commands.handle_weather,
+    "quote": communication_commands.handle_quote,
+    "event": communication_commands.handle_event,
     # AI Commands
     "c": ai_commands.handle_pm_ai,
     # Poll Commands
@@ -176,6 +182,7 @@ ADMIN_COMMANDS = {
     "q": bot_control.handle_quit,
     # Admin - Config Management
     "gapi": config_management.handle_set_gapi,
+    "harikuapi": config_management.handle_set_hariku_api_key,
     "list_gemini_models": config_management.handle_list_gemini_models,
     "lgm": config_management.handle_list_gemini_models,
     "set_gemini_model": config_management.handle_set_gemini_model,
@@ -210,3 +217,46 @@ ADMIN_COMMANDS = {
 
 # Combine all commands for easy lookup in command_handler
 ALL_COMMANDS = {**COMMAND_MAP_PM, **ADMIN_COMMANDS}
+
+# Commands that can be executed in channel by prefixing with '/'
+CHANNEL_COMMANDS = {
+    "c": ai_commands.handle_channel_ai,
+    "w": communication_commands.handle_weather,
+    "quote": communication_commands.handle_quote,
+    "event": communication_commands.handle_event,
+}
+
+def get_command_handler(command):
+    return ALL_COMMANDS.get(command)
+
+def is_channel_command(command):
+    return command in CHANNEL_COMMANDS
+
+def get_channel_command_handler(command):
+    return CHANNEL_COMMANDS.get(command)
+
+def is_admin_command(command):
+    return command in ADMIN_COMMANDS
+
+def get_admin_command_handler(command):
+    return ADMIN_COMMANDS.get(command)
+
+def get_all_commands():
+    return ALL_COMMANDS.keys()
+
+def get_pm_commands():
+    return COMMAND_MAP_PM.keys()
+
+def get_channel_commands():
+    return CHANNEL_COMMANDS.keys()
+
+def get_admin_commands():
+    return ADMIN_COMMANDS.keys()
+
+def get_command_description(command):
+    # This is a placeholder. In a real app, you'd have descriptions for each command.
+    return f"Description for {command}"
+
+def get_command_usage(command):
+    # This is a placeholder. In a real app, you'd have usage for each command.
+    return f"Usage for {command}"

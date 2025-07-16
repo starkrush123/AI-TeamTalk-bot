@@ -101,3 +101,25 @@ def handle_set_welcome_instruction(bot, msg_from_id, args_str, **kwargs):
         bot._send_pm(msg_from_id, "Welcome message instructions updated.")
     else:
         bot._send_pm(msg_from_id, "Failed to update welcome message instructions.")
+
+def handle_set_hariku_api_key(bot, msg_from_id, args_str, **kwargs):
+    if not args_str:
+        bot._send_pm(msg_from_id, "Usage: harikuapi <your_hariku_api_key>"); return
+
+    new_api_key = args_str.strip()
+    original_api_key = bot.hariku_service.api_key # Store original key
+
+    # Temporarily set and try to validate with the new key
+    if bot.hariku_service.validate_api_key(new_api_key):
+        bot.hariku_service.api_key = new_api_key
+        bot.hariku_service._enabled = True # Enable service if key is valid
+        feedback = "Hariku API key updated and validated successfully."
+        bot._save_runtime_config(save_hariku_key=True)
+    else:
+        # If validation failed, revert to original key and disable Hariku features
+        bot.hariku_service.api_key = original_api_key # Revert API key
+        bot.hariku_service._enabled = False # Disable service
+        feedback = "Hariku API key provided is invalid. Key not saved."
+    
+    bot._send_pm(msg_from_id, feedback)
+    if bot.main_window: bot.main_window.update_feature_list()
