@@ -18,7 +18,7 @@ An advanced TeamTalk bot integrated with Google Gemini AI to provide intelligent
     - **System Instructions**: Ability to give the AI custom instructions to tailor its behavior.
 - **Hariku API Integration**:
     - Hariku is a keyboard-focused daily companion designed to help you manage your time with intention and clarity. It integrates essential tools such as a personal journal, to-do lists, daily quotes, date insights, and updates into one seamless space. For more information, visit the [Hariku homepage](https://www.techlabs.lol/hariku/index.php). It is developed by **TechLabs**.
-    - The bot can retrieve random quotes and today's event information from the Hariku API.
+    - The bot can retrieve random quotes and event information from the Hariku API.
     - I am currently working on integrating Hariku's features more deeply with the Gemini AI. The goal is to allow users to interact with Hariku's services, especially for retrieving events, using natural language queries instead of rigid commands. This will make the bot more intuitive and user-friendly. However, this integration is still under development and facing some challenges.
 - **Command System**:
     - Separate commands for private messages (PM) and channel messages.
