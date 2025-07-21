@@ -12,6 +12,7 @@ class HarikuService:
     def __init__(self, api_key):
         self.api_key = api_key
         self._enabled = REQUESTS_AVAILABLE and bool(self.api_key)
+        hariku_logger.info(f"HarikuService initialized. Requests available: {REQUESTS_AVAILABLE}, API Key present: {bool(self.api_key)}, Enabled: {self._enabled}")
         self.base_url_quotes = "https://www.techlabs.lol/hariku/quotes/"
         self.base_url_calendar = "https://www.techlabs.lol/hariku/calendar/"
         self.headers = {

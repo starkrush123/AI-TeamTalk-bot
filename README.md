@@ -18,8 +18,7 @@ An advanced TeamTalk bot integrated with Google Gemini AI to provide intelligent
     - **System Instructions**: Ability to give the AI custom instructions to tailor its behavior.
 - **Hariku API Integration**:
     - Hariku is a keyboard-focused daily companion designed to help you manage your time with intention and clarity. It integrates essential tools such as a personal journal, to-do lists, daily quotes, date insights, and updates into one seamless space. For more information, visit the [Hariku homepage](https://www.techlabs.lol/hariku/index.php). It is developed by **TechLabs**.
-    - The bot can retrieve random quotes and event information from the Hariku API.
-    - I am currently working on integrating Hariku's features more deeply with the Gemini AI. The goal is to allow users to interact with Hariku's services, especially for retrieving events, using natural language queries instead of rigid commands. This will make the bot more intuitive and user-friendly. However, this integration is still under development and facing some challenges.
+    - The bot is now fully integrated with Gemini AI, allowing users to interact with Hariku services (such as getting quotes and event information) using natural language queries. The Gemini AI will intelligently call the relevant Hariku functions based on your requests. Please note that this integration is still under active development, and the AI may sometimes return incorrect tool call responses.
 - **Command System**:
     - Separate commands for private messages (PM) and channel messages.
     - Admin access level for powerful commands.
@@ -165,8 +164,8 @@ These commands can be used in a private message (PM) to the bot. Some are also a
 - `w <location>`: Gets the current weather (also available as `/w <location>` in channels).
 - `c <question>`: Asks the Gemini AI a question via PM.
 - `/c <question>`: Asks the Gemini AI a question in the bot's current channel (if enabled).
-- `quote`: Retrieves a random quote from the Hariku API.
-- `event`: Retrieves event information from the Hariku API.
+- `quote`: Retrieves a random quote from the Hariku API. (Also accessible via natural language queries to Gemini AI, e.g., "Tell me a random quote.")
+- `event`: Retrieves event information from the Hariku API. (Also accessible via natural language queries to Gemini AI, e.g., "What events are happening today?")
 - `poll "Question" "Option A" "Option B" ...`: Creates a new poll.
 - `vote <poll_id> <option_number>`: Casts a vote in an active poll.
 - `results <poll_id>`: Displays the results of a poll.

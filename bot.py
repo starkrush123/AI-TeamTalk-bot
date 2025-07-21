@@ -51,15 +51,16 @@ class MyTeamTalkBot(TeamTalk):
         self.debug_logging_enabled = bot_conf.get('debug_logging_enabled', False) # New attribute for debug logging
         self.ai_system_instructions = bot_conf.get('ai_system_instructions', '') # New attribute for AI system instructions
         self.welcome_message_instructions = bot_conf.get('welcome_message_instructions', '') # New attribute for welcome message instructions
+        self.hariku_service = HarikuService(bot_conf.get('hariku_api_key'))
         self.gemini_service = GeminiService(
             api_key=bot_conf.get('gemini_api_key'),
             context_history_enabled=self.context_history_enabled,
             model_name=bot_conf.get('gemini_model_name', 'gemini-1.5-flash-latest'),
             system_instructions=self.ai_system_instructions,
-            welcome_instructions=self.welcome_message_instructions
+            welcome_instructions=self.welcome_message_instructions,
+            hariku_service=self.hariku_service
         )
         self.weather_service = WeatherService(bot_conf.get('weather_api_key'))
-        self.hariku_service = HarikuService(bot_conf.get('hariku_api_key'))
         
         self.context_history_manager = ContextHistoryManager(
             retention_minutes=bot_conf.get('context_history_retention_minutes', 60),
