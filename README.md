@@ -99,14 +99,79 @@ Here is a breakdown of the configuration sections:
 
 You can run the bot in GUI, Console, or Web UI mode.
 
-### Web UI Mode (Recommended for remote management)
+### Web UI Mode (Recommended)
 
-Run `web_ui.py` to start the web-based control panel.
-
+#### 1. Development Mode
+For local testing and rapid development, you can run the bot directly:
 ```bash
 python web_ui.py
 ```
-Open your web browser and navigate to `http://127.0.0.1:5000/`.
+**Limitations of Development Mode:**
+- **Concurrency**: The built-in Flask server (Werkzeug) is not designed for high-concurrency production environments.
+- **Stability**: Background threads can behave inconsistently during auto-reloads.
+- **Security**: Not hardened for exposure to the public internet.
+
+#### 2. Production Mode (Waitress WSGI - Recommended for Windows)
+For stable, long-term operation, it is highly recommended to use a production-grade WSGI server like **Waitress**. This ensures the Web UI remains responsive while the bot handles background tasks.
+
+**Why Waitress?**
+- **Production-Ready**: Efficiently handles multiple simultaneous connections.
+- **Stable on Windows**: Native support for Windows environments.
+- **Predictability**: Provides a stable environment for the bot's background threads.
+
+**How to Run with Waitress:**
+1.  **Install Waitress**
+    ```bash
+    pip install waitress
+    ```
+2.  **Start the Server**
+    ```bash
+    waitress-serve --port=5000 --threads=4 web_ui:app
+    ```
+
+#### 3. Production Mode (Gunicorn - Recommended for Linux)
+For Linux servers, **Gunicorn** is the industry standard. However, because the bot maintains a persistent background thread, specific configuration is required.
+
+**How to Run with Gunicorn:**
+1.  **Install Gunicorn**
+    ```bash
+    pip install gunicorn
+    ```
+2.  **Start the Server**
+    ```bash
+    gunicorn --bind 0.0.0.0:5000 --workers 1 --threads 4 web_ui:app
+    ```
+    *Note: The `--workers 1` flag is mandatory to prevent multiple bot instances from starting.*
+
+**Running as a Systemd Service (Recommended for Linux):**
+To ensure the bot starts automatically on boot and restarts if it crashes, create a systemd service file: `/etc/systemd/system/teamtalk-bot.service`
+
+```ini
+[Unit]
+Description=AI TeamTalk Bot Web UI
+After=network.target
+
+[Service]
+User=your-user
+Group=www-data
+WorkingDirectory=/path/to/AI_TeamTalk_Bot
+ExecStart=/path/to/AI_TeamTalk_Bot/venv/bin/gunicorn --bind 0.0.0.0:5000 --workers 1 --threads 4 web_ui:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+Then, enable and start the service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable teamtalk-bot.service
+sudo systemctl start teamtalk-bot.service
+```
+
+#### Important: The Single Worker Constraint
+The bot maintains a persistent, stateful connection to the TeamTalk server via a background thread. For this reason, you **must only run one worker process**. 
+- If using other WSGI servers (like Gunicorn on Linux), **do not** set workers > 1.
+- Multiple workers will result in multiple bot instances attempting to login with the same credentials, causing "Already Logged In" errors or nickname conflicts.
 
 #### First-Time Setup: Creating a Super Admin
 
