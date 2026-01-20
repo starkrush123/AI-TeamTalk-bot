@@ -130,7 +130,7 @@ class MyTeamTalkBot(TeamTalk):
 
         for chunk in message_chunks:
             # buildTextMessage returns an iterable of textmessage objects
-            for msg_part_obj in buildTextMessage(ttstr(chunk), msg_type, **kwargs):
+            for msg_part_obj in buildTextMessage(chunk, msg_type, **kwargs):
                 if self.doTextMessage(msg_part_obj) == 0: # doTextMessage expects a textmessage object
                     self._log_to_gui(f"[Error] Failed to send message part.");
                     return False
