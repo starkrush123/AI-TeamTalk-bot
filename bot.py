@@ -1,5 +1,9 @@
 
-import sys, time, random, re, wx
+import sys, time, random, re
+try:
+    import wx
+except ImportError:
+    wx = None
 import logging # Re-add logging import for constants
 from TeamTalk5 import (
     TeamTalk, TeamTalkError, TextMsgType, UserRight, TT_STRLEN,
@@ -97,7 +101,7 @@ class MyTeamTalkBot(TeamTalk):
 
     def set_main_window(self, window): self.main_window = window; self._log_to_gui("GUI window linked.")
     def _log_to_gui(self, msg):
-        if self.main_window and hasattr(wx, 'CallAfter'):
+        if self.main_window and wx and hasattr(wx, 'CallAfter'):
             wx.CallAfter(self.main_window.log_message, msg)
         else:
             # When in non-GUI mode, just log to the standard logger
