@@ -5,6 +5,13 @@ from .core import get_bot_controller
 
 bot_bp = Blueprint('bot', __name__)
 
+def _sanitize_for_json(value):
+    if hasattr(value, 'value'): # Handle ctypes objects (like c_uint, c_int)
+        return value.value
+    if isinstance(value, bytes):
+        return value.decode('utf-8', errors='ignore')
+    return value
+
 @bot_bp.route('/status', methods=['GET'])
 @login_required
 def get_status():
@@ -42,7 +49,8 @@ def get_status():
                 if bot_controller.config:
                     try:
                         import json
-                        json.dumps(bot_controller.config) # Test if serializable
+                        # Basic check, but ideally we should sanitize config too if it has bytes
+                        json.dumps(bot_controller.config) 
                         status["config"] = bot_controller.config
                         bot_logger.debug("get_status: config is JSON serializable.")
                     except TypeError as e:
@@ -55,16 +63,16 @@ def get_status():
                 # Add TeamTalk server connection details
                 if status["running"] and bot_controller.bot_instance._logged_in:
                     status["server_info"] = {
-                        "host": bot_controller.bot_instance.host,
+                        "host": _sanitize_for_json(bot_controller.bot_instance.host),
                         "tcp_port": bot_controller.bot_instance.tcp_port,
                         "udp_port": bot_controller.bot_instance.udp_port,
-                        "nickname": bot_controller.bot_instance.nickname,
-                        "username": bot_controller.bot_instance.username,
-                        "target_channel_path": bot_controller.bot_instance.target_channel_path,
+                        "nickname": _sanitize_for_json(bot_controller.bot_instance.nickname),
+                        "username": _sanitize_for_json(bot_controller.bot_instance.username),
+                        "target_channel_path": _sanitize_for_json(bot_controller.bot_instance.target_channel_path),
                         "my_user_id": bot_controller.bot_instance._my_user_id,
-                        "my_rights": bot_controller.bot_instance.my_rights,
-                        "client_name": bot_controller.bot_instance.client_name,
-                        "status_message": bot_controller.bot_instance.status_message,
+                        "my_rights": _sanitize_for_json(bot_controller.bot_instance.my_rights),
+                        "client_name": _sanitize_for_json(bot_controller.bot_instance.client_name),
+                        "status_message": _sanitize_for_json(bot_controller.bot_instance.status_message),
                         "logged_in": bot_controller.bot_instance._logged_in,
                         "in_channel": bot_controller.bot_instance._in_channel,
                     }
