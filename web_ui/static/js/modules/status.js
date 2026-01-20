@@ -126,6 +126,10 @@ export async function fetchStatus() {
     } else {
         updateUIForStoppedBot();
     }
+    } catch (error) {
+        console.error("Error fetching status:", error);
+        updateUIForStoppedBot();
+    }
 }
 
 export function updateUIForStoppedBot() {
