@@ -1,6 +1,9 @@
 
 import logging
-import wx
+try:
+    import wx
+except ImportError:
+    wx = None
 
 def handle_lock(bot, msg_from_id, **kwargs):
     bot.toggle_bot_lock()
@@ -29,7 +32,7 @@ def handle_block_command(bot, msg_from_id, args_str, **kwargs):
 def handle_restart(bot, msg_from_id, **kwargs):
     bot._send_pm(msg_from_id, "Acknowledged. Restarting bot...")
     bot._mark_stopped_intentionally()
-    if bot.main_window:
+    if bot.main_window and wx:
         wx.CallAfter(bot._initiate_restart)
     else:
         bot._initiate_restart()
@@ -37,7 +40,7 @@ def handle_restart(bot, msg_from_id, **kwargs):
 def handle_quit(bot, msg_from_id, **kwargs):
     bot._send_pm(msg_from_id, "Acknowledged. Quitting...")
     bot._mark_stopped_intentionally()
-    if bot.main_window:
+    if bot.main_window and wx:
         wx.CallAfter(bot.stop)
     else:
         bot.controller.request_shutdown() # Request application shutdown
