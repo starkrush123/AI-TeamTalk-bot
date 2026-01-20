@@ -15,10 +15,25 @@ const featureMap = {
 };
 
 export async function fetchStatus() {
-    const response = await fetch('/status');
-    const data = await response.json();
-    
-    if (data.running) {
+    try {
+        const response = await fetch('/status');
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new TypeError("Oops, we didn't get JSON!");
+        }
+
+        const data = await response.json();
+        
+        if (data.running) {
         botStatusSpan.textContent = 'Running';
         statusIndicator.className = 'status-indicator running';
         startButton.disabled = true;
